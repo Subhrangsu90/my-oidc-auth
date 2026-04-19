@@ -41,60 +41,68 @@ oidcRoute.get("/auth/authorize", (req, res) => {
 });
 
 oidcRoute.post("/auth/authorize/sign-in", async (req, res) => {
-	// Get email, password from user
-	const { firstName, lastName, email, password } = req.body;
+	try {
+		// Get email, password from user
+		const { firstName, lastName, email, password } = req.body;
 
-	// If email or password any one not get
-	if (!firstName || !email || !password) {
-		res.status(400).json({
-			message: "First Name, Email and password are required.",
+		// If email or password any one not get
+		if (!firstName || !email || !password) {
+			res.status(400).json({
+				message: "First Name, Email and password are required.",
+			});
+			return;
+		}
+
+		//
+		const [user] = await db
+			.select()
+			.from(usersTable)
+			.where(eq(usersTable.email, email))
+			.limit(1);
+
+		if (!user || !user.password || !user.salt) {
+			res.status(401).json({
+				message: "Invalid email or password.",
+			});
+			return;
+		}
+
+		const hash = crypto
+			.createHash("sha256")
+			.update(password + user.salt)
+			.digest("hex");
+
+		if (hash !== user.password) {
+			res.status(401).json({ message: "Invalid email or password." });
+			return;
+		}
+
+		const ISSUER = `http://localhost:${process.env.PORT ?? 8000}`;
+		const now = Math.floor(Date.now() / 1000);
+
+		const claims: JWTClaims = {
+			iss: ISSUER,
+			sub: user.id,
+			email: user.email,
+			email_verified: String(user.emailVerified),
+			exp: now + 3600,
+			given_name: user.firstName ?? "",
+			family_name: user.lastName ?? undefined,
+			name: [user.firstName, user.lastName].filter(Boolean).join(" "),
+			picture: user.profileImageURL ?? undefined,
+		};
+
+		const token = JWT.sign(claims, PRIVATE_KEY, {
+			algorithm: "RS256",
 		});
-		return;
-	}
 
-	//
-	const [user] = await db
-		.select()
-		.from(usersTable)
-		.where(eq(usersTable.email, email))
-		.limit(1);
-
-	if (!user || !user.password || !user.salt) {
-		res.status(401).json({
-			message: "Invalid email or password.",
+		res.json({ token });
+	} catch (error) {
+		console.error("Sign-in failed", error);
+		res.status(500).json({
+			message: "Unable to sign in right now. Please try again later.",
 		});
 	}
-
-	const hash = crypto
-		.createHash("sha256")
-		.update(password + user.salt)
-		.digest("hex");
-
-	if (hash !== user.password) {
-		res.status(401).json({ message: "Invalid email or password." });
-		return;
-	}
-
-	const ISSUER = `http://localhost:${process.env.PORT ?? 8000}`;
-	const now = Math.floor(Date.now() / 1000);
-
-	const claims: JWTClaims = {
-		iss: ISSUER,
-		sub: user.id,
-		email: user.email,
-		email_verified: String(user.emailVerified),
-		exp: now + 3600,
-		given_name: user.firstName ?? "",
-		family_name: user.lastName ?? undefined,
-		name: [user.firstName, user.lastName].filter(Boolean).join(" "),
-		picture: user.profileImageURL ?? undefined,
-	};
-
-	const token = JWT.sign(claims, PRIVATE_KEY, {
-		algorithm: "RS256",
-	});
-
-	res.json({ token });
 });
 
 // 4. Token Endpoint: This endpoint is used by clients to exchange authorization codes for access tokens, refresh tokens, or ID tokens. It handles token requests and issues the appropriate tokens based on the authentication flow being used.
