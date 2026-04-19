@@ -42,12 +42,12 @@ oidcRoute.get("/auth/authorize", (req, res) => {
 
 oidcRoute.post("/auth/authorize/sign-in", async (req, res) => {
 	// Get email, password from user
-	const { email, password } = req.body;
+	const { firstName, lastName, email, password } = req.body;
 
 	// If email or password any one not get
-	if (!email || !password) {
+	if (!firstName || !email || !password) {
 		res.status(400).json({
-			message: "Email and password are required.",
+			message: "First Name, Email and password are required.",
 		});
 		return;
 	}

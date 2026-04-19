@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Login | OIDC Auth</title>
+	<style>
+		:root {
+			color-scheme: dark;
+			--bg: #07090f;
+			--panel: #111827;
+			--panel-strong: #172033;
+			--text: #f8fafc;
+			--muted: #9ca3af;
+			--line: #263145;
+			--accent: #38bdf8;
+			--accent-strong: #0ea5e9;
+			--danger: #fb7185;
+			--success: #34d399;
+			--shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+			background:
+				radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 32rem),
+				linear-gradient(135deg, #07090f 0%, #0f172a 52%, #111827 100%);
+			color: var(--text);
+			display: grid;
+			place-items: center;
+			padding: 32px 16px;
+		}
+
+		main {
+			width: min(100%, 460px);
+		}
+
+		.login-card {
+			background: rgba(17, 24, 39, 0.9);
+			border: 1px solid rgba(148, 163, 184, 0.16);
+			border-radius: 8px;
+			box-shadow: var(--shadow);
+			padding: 32px;
+			backdrop-filter: blur(16px);
+		}
+
+		.brand {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 28px;
+		}
+
+		.brand-mark {
+			width: 42px;
+			height: 42px;
+			border-radius: 8px;
+			display: grid;
+			place-items: center;
+			background: linear-gradient(135deg, var(--accent), #22c55e);
+			color: #03111c;
+			font-weight: 900;
+			letter-spacing: 0;
+		}
+
+		.brand-text {
+			display: grid;
+			gap: 2px;
+		}
+
+		.brand-text strong {
+			font-size: 1rem;
+		}
+
+		.brand-text span {
+			color: var(--muted);
+			font-size: 0.85rem;
+		}
+
+		h1 {
+			margin: 0 0 8px;
+			font-size: clamp(2rem, 9vw, 2.75rem);
+			line-height: 1.05;
+			letter-spacing: 0;
+		}
+
+		.subtitle {
+			margin: 0 0 28px;
+			color: var(--muted);
+			line-height: 1.55;
+		}
+
+		form {
+			display: grid;
+			gap: 18px;
+		}
+
+		.name-grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 14px;
+		}
+
+		label {
+			display: grid;
+			gap: 8px;
+			color: #dbeafe;
+			font-size: 0.92rem;
+			font-weight: 650;
+		}
+
+		input {
+			width: 100%;
+			min-height: 48px;
+			border: 1px solid var(--line);
+			border-radius: 8px;
+			background: #0b1220;
+			color: var(--text);
+			font: inherit;
+			outline: none;
+			padding: 12px 14px;
+			transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+		}
+
+		input::placeholder {
+			color: #64748b;
+		}
+
+		input:focus {
+			background: #0f172a;
+			border-color: var(--accent);
+			box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
+		}
+
+		button {
+			min-height: 50px;
+			border: 0;
+			border-radius: 8px;
+			background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+			color: #02111f;
+			cursor: pointer;
+			font: inherit;
+			font-weight: 800;
+			margin-top: 4px;
+			transition: transform 160ms ease, filter 160ms ease;
+		}
+
+		button:hover {
+			filter: brightness(1.06);
+			transform: translateY(-1px);
+		}
+
+		button:disabled {
+			cursor: wait;
+			filter: grayscale(0.35) brightness(0.8);
+			transform: none;
+		}
+
+		.status {
+			display: none;
+			border-radius: 8px;
+			font-size: 0.92rem;
+			line-height: 1.45;
+			margin-top: 18px;
+			padding: 12px 14px;
+		}
+
+		.status.show {
+			display: block;
+		}
+
+		.status.error {
+			background: rgba(251, 113, 133, 0.12);
+			border: 1px solid rgba(251, 113, 133, 0.32);
+			color: #fecdd3;
+		}
+
+		.status.success {
+			background: rgba(52, 211, 153, 0.12);
+			border: 1px solid rgba(52, 211, 153, 0.32);
+			color: #bbf7d0;
+		}
+
+		@media (max-width: 520px) {
+			body {
+				padding: 18px 12px;
+			}
+
+			.login-card {
+				padding: 24px;
+			}
+
+			.name-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<section class="login-card" aria-labelledby="login-title">
+			<div class="brand" aria-label="OIDC Auth">
+				<div class="brand-mark">O</div>
+				<div class="brand-text">
+					<strong>OIDC Auth</strong>
+					<span>Secure authorization</span>
+				</div>
+			</div>
+
+			<h1 id="login-title">Login</h1>
+			<p class="subtitle">Enter your profile details and password to continue.</p>
+
+			<form id="login-form">
+				<div class="name-grid">
+					<label for="first-name">
+						First name
+						<input id="first-name" name="firstName" autocomplete="given-name" placeholder="First name" required />
+					</label>
+
+					<label for="last-name">
+						Last name
+						<input id="last-name" name="lastName" autocomplete="family-name" placeholder="Last name" required />
+					</label>
+				</div>
+
+				<label for="email">
+					Email
+					<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+				</label>
+
+				<label for="password">
+					Password
+					<input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter password" minlength="6" required />
+				</label>
+
+				<button type="submit">Sign in</button>
+			</form>
+
+			<p id="status" class="status" role="status" aria-live="polite"></p>
+		</section>
+	</main>
+
+	<script>
+		const form = document.querySelector("#login-form");
+		const statusMessage = document.querySelector("#status");
+		const submitButton = form.querySelector("button");
+
+		function setStatus(message, type) {
+			statusMessage.textContent = message;
+			statusMessage.className = `status show ${type}`;
+		}
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+
+			const formData = new FormData(form);
+			submitButton.disabled = true;
+			submitButton.textContent = "Signing in...";
+			statusMessage.className = "status";
+
+			try {
+				const response = await fetch("/o/auth/authorize/sign-in", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						firstName: formData.get("firstName"),
+						lastName: formData.get("lastName"),
+						email: formData.get("email"),
+						password: formData.get("password"),
+					}),
+				});
+
+				const data = await response.json();
+
+				if (!response.ok) {
+					throw new Error(data.message || "Unable to sign in.");
+				}
+
+				setStatus("Signed in successfully. Token received from the authorization server.", "success");
+				console.log("OIDC token:", data.token);
+			} catch (error) {
+				setStatus(error.message || "Something went wrong. Please try again.", "error");
+			} finally {
+				submitButton.disabled = false;
+				submitButton.textContent = "Sign in";
+			}
+		});
+	</script>
+</body>
+</html>
