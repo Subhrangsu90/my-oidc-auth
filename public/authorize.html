@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -202,6 +203,7 @@
 		}
 	</style>
 </head>
+
 <body>
 	<main>
 		<section class="login-card" aria-labelledby="login-title">
@@ -217,26 +219,16 @@
 			<p class="subtitle">Enter your profile details and password to continue.</p>
 
 			<form id="login-form">
-				<div class="name-grid">
-					<label for="first-name">
-						First name
-						<input id="first-name" name="firstName" autocomplete="given-name" placeholder="First name" required />
-					</label>
-
-					<label for="last-name">
-						Last name
-						<input id="last-name" name="lastName" autocomplete="family-name" placeholder="Last name" required />
-					</label>
-				</div>
-
 				<label for="email">
 					Email
-					<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+					<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com"
+						required />
 				</label>
 
 				<label for="password">
 					Password
-					<input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter password" minlength="6" required />
+					<input id="password" name="password" type="password" autocomplete="current-password"
+						placeholder="Enter password" minlength="6" required />
 				</label>
 
 				<button type="submit">Sign in</button>
@@ -271,8 +263,6 @@
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify({
-						firstName: formData.get("firstName"),
-						lastName: formData.get("lastName"),
 						email: formData.get("email"),
 						password: formData.get("password"),
 					}),
@@ -295,4 +285,5 @@
 		});
 	</script>
 </body>
+
 </html>
