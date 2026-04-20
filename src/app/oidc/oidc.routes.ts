@@ -178,3 +178,12 @@ oidcRoute.post("/auth/authorize/sign-up", async (req, res) => {
 // 4. Token Endpoint: This endpoint is used by clients to exchange authorization codes for access tokens, refresh tokens, or ID tokens. It handles token requests and issues the appropriate tokens based on the authentication flow being used.
 
 // 5. Userinfo Endpoint: This endpoint allows clients to retrieve user profile information using an access token. Clients can make authenticated requests to this endpoint to obtain user attributes and claims associated with the authenticated user.
+oidcRoute.get("/user/userinfo", async (req, res) => {
+	const authHeader = req.headers.authorization;
+
+	// check at header authorization token have or not
+
+	// remove "Berrar " fron authheader
+
+	//
+});
