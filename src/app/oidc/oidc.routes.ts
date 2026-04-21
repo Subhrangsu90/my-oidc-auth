@@ -182,8 +182,42 @@ oidcRoute.get("/user/userinfo", async (req, res) => {
 	const authHeader = req.headers.authorization;
 
 	// check at header authorization token have or not
+	if (!authHeader.startsWith("Bearer ")) {
+		res.status(401).json({
+			message: "Missing or invalid Authorization header.",
+		});
+		return;
+	}
 
 	// remove "Berrar " fron authheader
+	const token = authHeader.slice(7);
 
-	//
+	let claims: JWTClaims;
+	try {
+		claims = JWT.verify(token, PUBLIC_KEY, {
+			algorithms: ["RS256"],
+		}) as JWTClaims;
+	} catch {
+		res.status(401).json({
+			message: "Invalid or expired token.",
+		});
+		return;
+	}
+
+	const [user] = await db.select().from(usersTable).where(eq(usersTable.id, claims.sub)).limit(1);
+
+	if (!user) {
+		res.status(404).json({ message: "User not found." });
+		return;
+	}
+
+	res.json({
+		sub: user.id,
+		email: user.email,
+		email_verified: user.emailVerified,
+		given_name: user.firstName,
+		family_name: user.lastName,
+		name: [user.firstName, user.lastName].filter(Boolean).join(" "),
+		picture: user.profileImageURL,
+	});
 });
