@@ -221,3 +221,7 @@ oidcRoute.get("/user/userinfo", async (req, res) => {
 		picture: user.profileImageURL,
 	});
 });
+
+oidcRoute.get("/admin", (req, res) => {
+	return res.sendFile(path.resolve("public", "application.html"));
+});
