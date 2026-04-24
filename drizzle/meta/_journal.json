@@ -8,6 +8,13 @@
       "when": 1776640236747,
       "tag": "0000_hesitant_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776930258552,
+      "tag": "0001_known_mister_fear",
+      "breakpoints": true
     }
   ]
 }

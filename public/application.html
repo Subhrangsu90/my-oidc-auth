@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Login | OIDC Auth</title>
+		<title>Application Registration | OIDC Auth</title>
 		<style>
 			:root {
 				color-scheme: dark;
@@ -48,7 +48,7 @@
 				width: min(100%, 460px);
 			}
 
-			.login-card {
+			.application-card {
 				background: rgba(17, 24, 39, 0.9);
 				border: 1px solid rgba(148, 163, 184, 0.16);
 				border-radius: 8px;
@@ -103,44 +103,9 @@
 				line-height: 1.55;
 			}
 
-			.client-context {
-				display: none;
-				gap: 6px;
-				margin: 0 0 22px;
-				padding: 14px 16px;
-				border: 1px solid rgba(56, 189, 248, 0.22);
-				border-radius: 8px;
-				background: rgba(14, 165, 233, 0.08);
-			}
-
-			.client-context.show {
-				display: grid;
-			}
-
-			.client-context strong {
-				font-size: 1rem;
-				color: #e0f2fe;
-			}
-
-			.client-context a {
-				color: var(--accent);
-				text-decoration: none;
-				word-break: break-all;
-			}
-
-			.client-context a:hover {
-				text-decoration: underline;
-			}
-
 			form {
 				display: grid;
 				gap: 18px;
-			}
-
-			.name-grid {
-				display: grid;
-				grid-template-columns: repeat(2, minmax(0, 1fr));
-				gap: 14px;
 			}
 
 			label {
@@ -151,7 +116,8 @@
 				font-weight: 650;
 			}
 
-			input {
+			input,
+			textarea {
 				width: 100%;
 				min-height: 48px;
 				border: 1px solid var(--line);
@@ -167,14 +133,26 @@
 					background 160ms ease;
 			}
 
-			input::placeholder {
+			input::placeholder,
+			textarea::placeholder {
 				color: #64748b;
 			}
 
-			input:focus {
+			input:focus,
+			textarea:focus {
 				background: #0f172a;
 				border-color: var(--accent);
 				box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.14);
+			}
+
+			textarea {
+				min-height: 80px;
+				resize: vertical;
+			}
+
+			input[readonly] {
+				background: #0a0f1c;
+				cursor: not-allowed;
 			}
 
 			button {
@@ -228,25 +206,30 @@
 				color: #bbf7d0;
 			}
 
+			.credentials {
+				display: none;
+				gap: 14px;
+				margin-top: 18px;
+			}
+
+			.credentials.show {
+				display: grid;
+			}
+
 			@media (max-width: 520px) {
 				body {
 					padding: 18px 12px;
 				}
 
-				.login-card {
+				.application-card {
 					padding: 24px;
-				}
-
-				.name-grid {
-					grid-template-columns: 1fr;
 				}
 			}
 		</style>
 	</head>
-
 	<body>
 		<main>
-			<section class="login-card" aria-labelledby="login-title">
+			<section class="application-card" aria-labelledby="application-title">
 				<div class="brand" aria-label="OIDC Auth">
 					<div class="brand-mark">O</div>
 					<div class="brand-text">
@@ -255,156 +238,120 @@
 					</div>
 				</div>
 
-				<h1 id="login-title">Login</h1>
-				<p class="subtitle">Enter your profile details and password to continue.</p>
-				<div id="client-context" class="client-context" aria-live="polite">
-					<span>Signing in to</span>
-					<strong id="client-name"></strong>
-					<a id="client-url" href="#" target="_blank" rel="noreferrer"></a>
-				</div>
+				<h1 id="application-title">Application Registration</h1>
+				<p class="subtitle">Register your application to get client credentials.</p>
 
-				<form id="login-form">
-					<label for="email">
-						Email
+				<form id="applicationForm">
+					<label for="displayName">
+						Application Display Name
 						<input
-							id="email"
-							name="email"
-							type="email"
-							autocomplete="email"
-							placeholder="you@example.com"
+							id="displayName"
+							name="displayName"
+							type="text"
+							placeholder="My Application"
 							required />
 					</label>
 
-					<label for="password">
-						Password
+					<label for="applicationUrl">
+						Application URL
 						<input
-							id="password"
-							name="password"
-							type="password"
-							autocomplete="current-password"
-							placeholder="Enter password"
-							minlength="6"
+							id="applicationUrl"
+							name="applicationUrl"
+							type="url"
+							placeholder="https://myapp.com"
 							required />
 					</label>
 
-					<button type="submit">Sign in</button>
+					<label for="redirectUrl">
+						Redirect URL
+						<input
+							id="redirectUrl"
+							name="redirectUrl"
+							type="url"
+							placeholder="https://myapp.com/callback"
+							required />
+					</label>
+
+					<label for="description">
+						Description
+						<textarea
+							id="description"
+							name="description"
+							placeholder="Brief description of your application"></textarea>
+					</label>
+
+					<button type="submit">Register Application</button>
 				</form>
 
 				<p id="status" class="status" role="status" aria-live="polite"></p>
 
-				<p style="text-align: center; margin-top: 18px; font-size: 0.92rem">
-					Don't have an account?
-					<a id="sign-up-link" href="/o/sign-up" style="color: var(--accent); text-decoration: none"
-						>Sign up</a
-					>
-				</p>
+				<div id="credentials" class="credentials" aria-live="polite">
+					<label for="clientId">
+						Client ID
+						<input id="clientId" type="text" readonly />
+					</label>
+
+					<label for="clientSecret">
+						Client Secret
+						<input id="clientSecret" type="text" readonly />
+					</label>
+				</div>
 			</section>
 		</main>
 
 		<script>
-			const form = document.querySelector("#login-form");
+			const form = document.querySelector("#applicationForm");
 			const statusMessage = document.querySelector("#status");
 			const submitButton = form.querySelector("button");
-			const authorizationParams = new URLSearchParams(window.location.search);
-			const signUpLink = document.querySelector("#sign-up-link");
-			const clientContext = document.querySelector("#client-context");
-			const clientName = document.querySelector("#client-name");
-			const clientUrl = document.querySelector("#client-url");
-			const requiredParams = ["client_id", "redirect_uri", "response_type"];
-
-			function getAuthorizationError() {
-				for (const param of requiredParams) {
-					if (!authorizationParams.get(param)) {
-						return `${param} is required to continue.`;
-					}
-				}
-
-				if (authorizationParams.get("response_type") !== "code") {
-					return "response_type must be code.";
-				}
-
-				return "";
-			}
-
-			if (authorizationParams.toString()) {
-				signUpLink.href = `/o/sign-up?${authorizationParams.toString()}`;
-			}
+			const credentials = document.querySelector("#credentials");
+			const clientId = document.querySelector("#clientId");
+			const clientSecret = document.querySelector("#clientSecret");
 
 			function setStatus(message, type) {
 				statusMessage.textContent = message;
 				statusMessage.className = `status show ${type}`;
 			}
 
-			async function loadClientContext() {
-				const authorizationError = getAuthorizationError();
+			// Handle form submission
+			form.addEventListener("submit", async function (e) {
+				e.preventDefault();
 
-				if (authorizationError) {
-					setStatus(authorizationError, "error");
-					submitButton.disabled = true;
-					return;
-				}
-
-				const clientId = authorizationParams.get("client_id");
-
-				try {
-					const response = await fetch(
-						`/o/auth/application?client_id=${encodeURIComponent(clientId)}`
-					);
-					const data = await response.json();
-
-					if (!response.ok) {
-						throw new Error(data.message || "Unable to load application details.");
-					}
-
-					clientName.textContent = data.applicationName || data.clientId;
-					clientUrl.textContent = data.applicationURL;
-					clientUrl.href = data.applicationURL;
-					clientContext.classList.add("show");
-				} catch (error) {
-					setStatus(error.message || "Unable to load application details.", "error");
-				}
-			}
-
-			loadClientContext();
-
-			form.addEventListener("submit", async (event) => {
-				event.preventDefault();
-
-				const formData = new FormData(form);
+				const formData = new FormData(this);
 				submitButton.disabled = true;
-				submitButton.textContent = "Signing in...";
+				submitButton.textContent = "Registering...";
 				statusMessage.className = "status";
 
 				try {
-					const response = await fetch("/o/auth/authorize/sign-in", {
+					const response = await fetch("/o/auth/application/register", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
 						},
 						body: JSON.stringify({
-							email: formData.get("email"),
-							password: formData.get("password"),
-							clientId: authorizationParams.get("client_id"),
-							redirectUri: authorizationParams.get("redirect_uri"),
-							state: authorizationParams.get("state"),
+							displayName: formData.get("displayName"),
+							applicationUrl: formData.get("applicationUrl"),
+							redirectUrl: formData.get("redirectUrl"),
+							description: formData.get("description"),
+							clientId: formData.get("clientId"),
+							clientSecret: formData.get("clientSecret"),
 						}),
 					});
 
 					const data = await response.json();
 
 					if (!response.ok) {
-						throw new Error(data.message || "Unable to sign in.");
+						throw new Error(data.message || "Unable to register application.");
 					}
 
-					if (data.redirectTo) {
-						window.location.assign(data.redirectTo);
-						return;
-					}
+					clientId.value = data.clientId;
+					clientSecret.value = data.clientSecret;
+					credentials.classList.add("show");
+					setStatus("Application registered successfully!", "success");
 				} catch (error) {
 					setStatus(error.message || "Something went wrong. Please try again.", "error");
 				} finally {
 					submitButton.disabled = false;
-					submitButton.textContent = "Sign in";
+					submitButton.textContent = "Register Application";
 				}
 			});
 		</script>

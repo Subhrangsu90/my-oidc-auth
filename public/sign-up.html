@@ -103,6 +103,35 @@
 				line-height: 1.55;
 			}
 
+			.client-context {
+				display: none;
+				gap: 6px;
+				margin: 0 0 22px;
+				padding: 14px 16px;
+				border: 1px solid rgba(56, 189, 248, 0.22);
+				border-radius: 8px;
+				background: rgba(14, 165, 233, 0.08);
+			}
+
+			.client-context.show {
+				display: grid;
+			}
+
+			.client-context strong {
+				font-size: 1rem;
+				color: #e0f2fe;
+			}
+
+			.client-context a {
+				color: var(--accent);
+				text-decoration: none;
+				word-break: break-all;
+			}
+
+			.client-context a:hover {
+				text-decoration: underline;
+			}
+
 			form {
 				display: grid;
 				gap: 18px;
@@ -226,8 +255,13 @@
 					</div>
 				</div>
 
-				<h1 id="sign-up-title">sign-up</h1>
-				<p class="subtitle">Enter your profile details and password to continue.</p>
+				<h1 id="sign-up-title">Sign up</h1>
+				<p class="subtitle">Create your account to continue with the requested application.</p>
+				<div id="client-context" class="client-context" aria-live="polite">
+					<span>Creating an account for</span>
+					<strong id="client-name"></strong>
+					<a id="client-url" href="#" target="_blank" rel="noreferrer"></a>
+				</div>
 
 				<form id="sign-up-form">
 					<div class="name-grid">
@@ -282,7 +316,12 @@
 
 				<p style="text-align: center; margin-top: 18px; font-size: 0.92rem">
 					Already have an account?
-					<a href="authorize.html" style="color: var(--accent); text-decoration: none">Sign in</a>
+					<a
+						id="sign-in-link"
+						href="/o/auth/authorize"
+						style="color: var(--accent); text-decoration: none"
+						>Sign in</a
+					>
 				</p>
 			</section>
 		</main>
@@ -291,11 +330,63 @@
 			const form = document.querySelector("#sign-up-form");
 			const statusMessage = document.querySelector("#status");
 			const submitButton = form.querySelector("button");
+			const authorizationParams = new URLSearchParams(window.location.search);
+			const signInLink = document.querySelector("#sign-in-link");
+			const clientContext = document.querySelector("#client-context");
+			const clientName = document.querySelector("#client-name");
+			const clientUrl = document.querySelector("#client-url");
+			const requiredParams = ["client_id", "redirect_uri"];
+
+			function getAuthorizationError() {
+				for (const param of requiredParams) {
+					if (!authorizationParams.get(param)) {
+						return `${param} is required to continue.`;
+					}
+				}
+
+				return "";
+			}
+
+			if (authorizationParams.toString()) {
+				signInLink.href = `/o/auth/authorize?${authorizationParams.toString()}`;
+			}
 
 			function setStatus(message, type) {
 				statusMessage.textContent = message;
 				statusMessage.className = `status show ${type}`;
 			}
+
+			async function loadClientContext() {
+				const authorizationError = getAuthorizationError();
+
+				if (authorizationError) {
+					setStatus(authorizationError, "error");
+					submitButton.disabled = true;
+					return;
+				}
+
+				const clientId = authorizationParams.get("client_id");
+
+				try {
+					const response = await fetch(
+						`/o/auth/application?client_id=${encodeURIComponent(clientId)}`
+					);
+					const data = await response.json();
+
+					if (!response.ok) {
+						throw new Error(data.message || "Unable to load application details.");
+					}
+
+					clientName.textContent = data.applicationName || data.clientId;
+					clientUrl.textContent = data.applicationURL;
+					clientUrl.href = data.applicationURL;
+					clientContext.classList.add("show");
+				} catch (error) {
+					setStatus(error.message || "Unable to load application details.", "error");
+				}
+			}
+
+			loadClientContext();
 
 			form.addEventListener("submit", async (event) => {
 				event.preventDefault();
@@ -316,6 +407,9 @@
 							lastName: formData.get("lastName"),
 							email: formData.get("email"),
 							password: formData.get("password"),
+							clientId: authorizationParams.get("client_id"),
+							redirectUri: authorizationParams.get("redirect_uri"),
+							state: authorizationParams.get("state"),
 						}),
 					});
 
@@ -325,11 +419,15 @@
 						throw new Error(data.message || "Unable to Sign up.");
 					}
 
-					setStatus(
-						"Signed up successfully. Token received from the authorization server.",
-						"success"
-					);
-					console.log("OIDC token:", data.token);
+					setStatus("Account created successfully. Redirecting you to sign in.", "success");
+
+					const redirectUrl = authorizationParams.toString()
+						? `/o/auth/authorize?${authorizationParams.toString()}`
+						: "/o/auth/authorize";
+
+					window.setTimeout(() => {
+						window.location.assign(redirectUrl);
+					}, 1200);
 				} catch (error) {
 					setStatus(error.message || "Something went wrong. Please try again.", "error");
 				} finally {
