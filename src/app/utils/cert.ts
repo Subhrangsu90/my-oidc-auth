@@ -1,12 +1,16 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-export const PRIVATE_KEY = readFileSync(
-	path.resolve("cert/private-key.pem"),
-	"utf-8",
-);
+function readKeyFromEnvOrFile(envName: string, filePath: string) {
+	const value = process.env[envName];
 
-export const PUBLIC_KEY = readFileSync(
-	path.resolve("cert/public-key.pub"),
-	"utf-8",
-);
+	if (value) {
+		return value.replace(/\\n/g, "\n");
+	}
+
+	return readFileSync(path.resolve(filePath), "utf-8");
+}
+// Read keys from environment variables or fallback to files
+export const PRIVATE_KEY = readKeyFromEnvOrFile("OIDC_PRIVATE_KEY", "cert/private-key.pem");
+
+export const PUBLIC_KEY = readKeyFromEnvOrFile("OIDC_PUBLIC_KEY", "cert/public-key.pub");
