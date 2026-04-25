@@ -5,7 +5,10 @@ function readKeyFromEnvOrFile(envName: string, filePath: string) {
 	const value = process.env[envName];
 
 	if (value) {
-		return value.replace(/\\n/g, "\n");
+		return value
+			.trim()
+			.replace(/^['"]|['"]$/g, "")
+			.replace(/\\n/g, "\n");
 	}
 
 	return readFileSync(path.resolve(filePath), "utf-8");

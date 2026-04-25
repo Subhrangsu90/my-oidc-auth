@@ -52,6 +52,10 @@ function createUserJWT(user: typeof usersTable.$inferSelect) {
 	});
 }
 
+function logRouteError(context: string, error: unknown) {
+	console.error(context, error instanceof Error ? error.stack : error);
+}
+
 async function findApplicationByClientId(clientId: string) {
 	const [application] = await db
 		.select()
@@ -399,12 +403,12 @@ oidcRoute.post("/auth/token", async (req, res) => {
 			return;
 		}
 
+		const token = createUserJWT(user);
+
 		await db
 			.update(authorizationCodesTable)
 			.set({ usedAt: new Date() })
 			.where(eq(authorizationCodesTable.id, authorizationCode.id));
-
-		const token = createUserJWT(user);
 
 		res.json({
 			token_type: "Bearer",
@@ -412,7 +416,9 @@ oidcRoute.post("/auth/token", async (req, res) => {
 			access_token: token,
 			id_token: token,
 		});
-	} catch {
+	} catch (error) {
+		logRouteError("Token exchange failed", error);
+
 		res.status(500).json({
 			message: "Unable to issue token right now. Please try again later.",
 		});
