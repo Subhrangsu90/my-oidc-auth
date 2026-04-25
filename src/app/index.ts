@@ -30,7 +30,7 @@ export function createOIDCAuthServer() {
 	});
 
 	// OIDC Authentication routes
-	app.use("/o", oidcRoute);
+	app.use("/", oidcRoute);
 
 	return app;
 }

@@ -57,7 +57,7 @@
 
 				<p class="helper-text">
 					Don't have an account?
-					<a id="sign-up-link" href="/o/sign-up">Sign up</a>
+					<a id="sign-up-link" href="/sign-up">Sign up</a>
 				</p>
 			</section>
 		</main>
@@ -88,7 +88,7 @@
 			}
 
 			if (authorizationParams.toString()) {
-				signUpLink.href = `/o/sign-up?${authorizationParams.toString()}`;
+				signUpLink.href = `/sign-up?${authorizationParams.toString()}`;
 			}
 
 			function setStatus(message, type) {
@@ -109,7 +109,7 @@
 
 				try {
 					const response = await fetch(
-						`/o/auth/application?client_id=${encodeURIComponent(clientId)}`
+						`/auth/application?client_id=${encodeURIComponent(clientId)}`
 					);
 					const data = await response.json();
 
@@ -137,7 +137,7 @@
 				statusMessage.className = "status";
 
 				try {
-					const response = await fetch("/o/auth/authorize/sign-in", {
+					const response = await fetch("/auth/authorize/sign-in", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",

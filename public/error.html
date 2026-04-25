@@ -21,8 +21,8 @@
 				</div>
 
 				<div class="actions">
-					<a class="button primary" href="/o/admin">Open App Registration</a>
-					<a class="button secondary" href="/o/.well-known/openid-configuration">
+					<a class="button primary" href="/admin">Open App Registration</a>
+					<a class="button secondary" href="/.well-known/openid-configuration">
 						View OIDC Metadata
 					</a>
 				</div>
@@ -32,8 +32,7 @@
 		<script>
 			const params = new URLSearchParams(window.location.search);
 			const title = params.get("title") || "Authorization Error";
-			const message =
-				params.get("message") || "Something went wrong while validating the request.";
+			const message = params.get("message") || "Something went wrong while validating the request.";
 			const status = params.get("status") || "400";
 
 			document.title = `${title} | browcodex Auth`;

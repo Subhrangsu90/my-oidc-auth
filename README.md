@@ -46,7 +46,7 @@ Not recommended for production with the current implementation.
 
 Reason:
 
-- `/o/auth/token` currently requires `client_id` and `client_secret`
+- `/auth/token` currently requires `client_id` and `client_secret`
 - a browser-only app cannot keep `client_secret` private
 
 So today, a pure SPA/mobile-web frontend should not call the token endpoint directly in production.
@@ -69,19 +69,19 @@ http://localhost:8000
 
 Important endpoints:
 
-- Discovery: `/o/.well-known/openid-configuration`
-- Authorize: `/o/auth/authorize`
-- Token: `/o/auth/token`
-- Userinfo: `/o/user/userinfo`
-- JWKS: `/o/auth/jwks.json`
-- App registration UI: `/o/admin`
+- Discovery: `/.well-known/openid-configuration`
+- Authorize: `/auth/authorize`
+- Token: `/auth/token`
+- Userinfo: `/user/userinfo`
+- JWKS: `/auth/jwks.json`
+- App registration UI: `/admin`
 
 ## Register A Client
 
 Open:
 
 ```text
-http://localhost:8000/o/admin
+http://localhost:8000/admin
 ```
 
 Create an application and keep:
@@ -96,23 +96,23 @@ This is the simplest and safest integration.
 
 ### Flow
 
-1. Redirect the user to `/o/auth/authorize`
+1. Redirect the user to `/auth/authorize`
 2. User signs in on `my-oidc-auth`
 3. Provider redirects back to your backend callback with `code`
-4. Your backend calls `/o/auth/token`
+4. Your backend calls `/auth/token`
 5. Your backend stores tokens in session or secure server storage
-6. Your backend may call `/o/user/userinfo`
+6. Your backend may call `/user/userinfo`
 
 ### Authorize request
 
 ```text
-GET /o/auth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=openid%20profile%20email&state=YOUR_STATE
+GET /auth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=openid%20profile%20email&state=YOUR_STATE
 ```
 
 ### Token exchange
 
 ```http
-POST /o/auth/token
+POST /auth/token
 Content-Type: application/json
 
 {
@@ -127,7 +127,7 @@ Content-Type: application/json
 ### Userinfo request
 
 ```http
-GET /o/user/userinfo
+GET /user/userinfo
 Authorization: Bearer ACCESS_TOKEN
 ```
 
@@ -147,7 +147,7 @@ This is the best choice for Angular, React, Vue, or any SPA with an API server.
 1. Frontend sends the user to your backend login route
 2. Backend redirects to `my-oidc-auth` authorize endpoint
 3. Provider redirects back to your backend callback
-4. Backend exchanges code at `/o/auth/token`
+4. Backend exchanges code at `/auth/token`
 5. Backend creates its own session cookie for the frontend
 6. Frontend calls your backend as an authenticated user
 
@@ -155,7 +155,7 @@ This keeps OIDC tokens and the client secret out of browser JavaScript.
 
 ## Can A Frontend Call The Provider Directly?
 
-Yes for the browser redirect to `/o/auth/authorize`.
+Yes for the browser redirect to `/auth/authorize`.
 
 No for a secure production token exchange, because the frontend would need to send `client_secret`.
 

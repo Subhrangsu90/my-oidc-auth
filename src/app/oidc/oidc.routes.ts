@@ -112,7 +112,7 @@ function redirectToErrorPage(
 	statusCode = 400,
 	title = "Authorization Error"
 ) {
-	const errorPageUrl = new URL("/o/error", "http://localhost:8000");
+	const errorPageUrl = new URL("/error", "http://localhost:8000");
 	errorPageUrl.searchParams.set("title", title);
 	errorPageUrl.searchParams.set("message", message);
 	errorPageUrl.searchParams.set("status", String(statusCode));
@@ -125,10 +125,10 @@ function getDiscoveryMetadata(req: express.Request) {
 
 	return {
 		issuer: ISSUER,
-		authorization_endpoint: `${ISSUER}/o/auth/authorize`,
-		token_endpoint: `${ISSUER}/o/auth/token`,
-		userinfo_endpoint: `${ISSUER}/o/user/userinfo`,
-		jwks_uri: `${ISSUER}/o/auth/jwks.json`,
+		authorization_endpoint: `${ISSUER}/auth/authorize`,
+		token_endpoint: `${ISSUER}/auth/token`,
+		userinfo_endpoint: `${ISSUER}/user/userinfo`,
+		jwks_uri: `${ISSUER}/auth/jwks.json`,
 		response_types_supported: ["code"],
 		grant_types_supported: ["authorization_code"],
 		subject_types_supported: ["public"],
