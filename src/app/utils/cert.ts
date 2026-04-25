@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createPrivateKey, createPublicKey } from "node:crypto";
 import path from "node:path";
 
 function readKeyFromEnvOrFile(envName: string, filePath: string) {
@@ -17,3 +18,11 @@ function readKeyFromEnvOrFile(envName: string, filePath: string) {
 export const PRIVATE_KEY = readKeyFromEnvOrFile("OIDC_PRIVATE_KEY", "cert/private-key.pem");
 
 export const PUBLIC_KEY = readKeyFromEnvOrFile("OIDC_PUBLIC_KEY", "cert/public-key.pub");
+
+try {
+	createPrivateKey(PRIVATE_KEY);
+	createPublicKey(PUBLIC_KEY);
+} catch (error) {
+	console.error("OIDC signing key validation failed", error instanceof Error ? error.stack : error);
+	throw error;
+}
