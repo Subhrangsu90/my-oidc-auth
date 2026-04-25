@@ -317,7 +317,7 @@ oidcRoute.post("/auth/authorize/sign-in", async (req, res) => {
 		}
 
 		const code = createRandomToken(24);
-		const expiresAt = new Date(Date.now() + 60 * 1000);
+		const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
 		await db.insert(authorizationCodesTable).values({
 			code,
