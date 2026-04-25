@@ -2,212 +2,659 @@
 
 Minimal OpenID Connect provider built with Express, TypeScript, PostgreSQL, and Drizzle.
 
-This project currently supports the Authorization Code flow and issues RS256-signed tokens.
+This provider currently supports the OpenID Connect Authorization Code flow and issues RS256-signed JWTs.
 
-## What Client Types Can Use This?
+## Provider URL
 
-`my-oidc-auth` works best with clients that have a backend.
-
-### 1. Server-side web app
-
-Recommended and fully supported.
-
-Examples:
-
-- Express app
-- NestJS app
-- Next.js app using server routes
-- Any backend-rendered application
-
-Why it fits:
-
-- the server can safely store `client_secret`
-- the backend can exchange the authorization `code` for tokens
-- tokens can stay on the server or inside an HTTP-only session
-
-### 2. Frontend + backend
-
-Recommended and fully supported.
-
-Examples:
-
-- React or Angular frontend with Node/Java/Spring/.NET backend
-- SPA frontend with a BFF layer
-
-Why it fits:
-
-- the frontend only starts login and receives the redirect
-- your backend handles `/token` exchange
-- `client_secret` is never exposed to the browser
-
-### 3. Frontend-only app
-
-Not recommended for production with the current implementation.
-
-Reason:
-
-- `/auth/token` currently requires `client_id` and `client_secret`
-- a browser-only app cannot keep `client_secret` private
-
-So today, a pure SPA/mobile-web frontend should not call the token endpoint directly in production.
-
-If you want true frontend-only support later, this provider should be extended to support public clients with PKCE and no client secret requirement for those clients.
-
-## Current Support Matrix
-
-- Server-side only: supported
-- Frontend + backend: supported
-- Frontend-only SPA: not production-safe yet
-
-## Provider Endpoints
-
-Base URL example:
+Production issuer/discovery URL:
 
 ```text
-http://localhost:8000
+https://autho.subhrangsu.in/.well-known/openid-configuration
+```
+
+Local development URL:
+
+```text
+http://localhost:8000/.well-known/openid-configuration
 ```
 
 Important endpoints:
 
-- Discovery: `/.well-known/openid-configuration`
-- Authorize: `/auth/authorize`
-- Token: `/auth/token`
-- Userinfo: `/user/userinfo`
-- JWKS: `/auth/jwks.json`
-- App registration UI: `/admin`
+| Purpose | Endpoint |
+| --- | --- |
+| Discovery | `/.well-known/openid-configuration` |
+| Authorization | `/auth/authorize` |
+| Token exchange | `/auth/token` |
+| User profile | `/user/userinfo` |
+| JWKS public keys | `/auth/jwks.json` |
+| Client registration UI | `/admin` |
+
+Supported values:
+
+- `response_type`: `code`
+- `grant_type`: `authorization_code`
+- `scope`: `openid profile email`
+- signing algorithm: `RS256`
+- token lifetime: `3600` seconds
 
 ## Register A Client
 
-Open:
+Open the registration UI:
+
+```text
+https://autho.subhrangsu.in/admin
+```
+
+For local development:
 
 ```text
 http://localhost:8000/admin
 ```
 
-Create an application and keep:
+Create an application and save:
 
 - `clientId`
 - `clientSecret`
-- allowed redirect URL
+- redirect URI, for example `http://localhost:3000/auth/callback`
 
-## How To Use From A Server-side App
+The redirect URI used during login must exactly match one of the redirect URIs registered for the application.
 
-This is the simplest and safest integration.
+## Which Client Type Should I Use?
 
-### Flow
+### 1. Server-side app
 
-1. Redirect the user to `/auth/authorize`
-2. User signs in on `my-oidc-auth`
-3. Provider redirects back to your backend callback with `code`
-4. Your backend calls `/auth/token`
-5. Your backend stores tokens in session or secure server storage
-6. Your backend may call `/user/userinfo`
+Use this when your app has a backend that renders pages or owns the login session.
 
-### Authorize request
+Good examples:
+
+- Express
+- NestJS
+- Django
+- Laravel
+- Rails
+- Next.js server routes
+
+This is the simplest and safest setup because the backend can keep `clientSecret` private.
+
+### 2. SPA plus backend
+
+Use this when your frontend is vanilla HTML/CSS/JS, React, Vue, Angular, or similar, and you also have a backend API.
+
+The browser starts login, but the backend exchanges the authorization code for tokens. This keeps `clientSecret` out of browser JavaScript.
+
+### Frontend-only SPA
+
+A pure browser-only app is not production-safe with the current provider because `/auth/token` requires `client_secret`.
+
+To support browser-only clients later, add public clients with PKCE and allow token exchange without a client secret for those public clients.
+
+## OIDC Flow Summary
+
+1. Your app redirects the user to `/auth/authorize`.
+2. The user signs in on `my-oidc-auth`.
+3. `my-oidc-auth` redirects back to your registered `redirect_uri` with `code` and optional `state`.
+4. Your backend sends the `code`, `client_id`, and `client_secret` to `/auth/token`.
+5. Your backend receives `access_token` and `id_token`.
+6. Your backend creates its own app session or calls `/user/userinfo`.
+
+## Request Examples
+
+### Authorization URL
 
 ```text
-GET /auth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=openid%20profile%20email&state=YOUR_STATE
+https://autho.subhrangsu.in/auth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code&scope=openid%20profile%20email&state=RANDOM_STATE
 ```
 
-### Token exchange
+### Token Exchange
 
 ```http
 POST /auth/token
+Host: autho.subhrangsu.in
 Content-Type: application/json
 
 {
   "grant_type": "authorization_code",
-  "code": "AUTH_CODE",
-  "redirect_uri": "YOUR_REDIRECT_URI",
+  "code": "AUTHORIZATION_CODE_FROM_CALLBACK",
+  "redirect_uri": "http://localhost:3000/auth/callback",
   "client_id": "YOUR_CLIENT_ID",
   "client_secret": "YOUR_CLIENT_SECRET"
 }
 ```
 
-### Userinfo request
+Successful response:
+
+```json
+{
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "access_token": "eyJ...",
+  "id_token": "eyJ..."
+}
+```
+
+### Userinfo
 
 ```http
 GET /user/userinfo
+Host: autho.subhrangsu.in
 Authorization: Bearer ACCESS_TOKEN
 ```
 
-## How To Use From A Frontend + Backend App
+Successful response:
 
-This is the best choice for Angular, React, Vue, or any SPA with an API server.
-
-### Recommended split
-
-- Frontend:
-  starts login, handles UI, sends user to your backend or receives the redirect first
-- Backend:
-  stores `client_secret`, exchanges code for tokens, creates your app session
-
-### Recommended flow
-
-1. Frontend sends the user to your backend login route
-2. Backend redirects to `my-oidc-auth` authorize endpoint
-3. Provider redirects back to your backend callback
-4. Backend exchanges code at `/auth/token`
-5. Backend creates its own session cookie for the frontend
-6. Frontend calls your backend as an authenticated user
-
-This keeps OIDC tokens and the client secret out of browser JavaScript.
-
-## Can A Frontend Call The Provider Directly?
-
-Yes for the browser redirect to `/auth/authorize`.
-
-No for a secure production token exchange, because the frontend would need to send `client_secret`.
-
-That means the browser can start login, but token exchange should happen on a backend you control.
-
-## Example Architecture Choices
-
-### Option A: Only server-side app
-
-Use when your app renders pages on the server.
-
-```text
-Browser -> Your Server -> my-oidc-auth
+```json
+{
+  "sub": "user-id",
+  "email": "user@example.com",
+  "email_verified": false,
+  "given_name": "Subhrangsu",
+  "family_name": "Example",
+  "name": "Subhrangsu Example",
+  "picture": null
+}
 ```
 
-### Option B: SPA + backend
+## Integration 1: Only Server-side App
 
-Use when your UI is Angular/React/Vue but you also have an API or BFF.
+This example uses Express as the client application.
 
-```text
-Browser SPA -> Your Backend -> my-oidc-auth
+Install dependencies in your client app:
+
+```bash
+npm install express express-session dotenv
 ```
 
-### Option C: SPA only
+Create `.env` in your client app:
 
-Use only for local testing if you knowingly accept exposing secrets. Not suitable for production with the current provider design.
-
-```text
-Browser SPA -> my-oidc-auth
+```env
+PORT=3000
+OIDC_ISSUER=https://autho.subhrangsu.in
+OIDC_CLIENT_ID=YOUR_CLIENT_ID
+OIDC_CLIENT_SECRET=YOUR_CLIENT_SECRET
+OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
+SESSION_SECRET=change-this-long-random-value
 ```
 
-## Local Test Client In This Repo
+Create `server.js`:
 
-See [`oidc-test-client`](../oidc-test-client/README.md). It demonstrates the supported pattern where a backend client:
+```js
+const crypto = require("node:crypto");
+const express = require("express");
+const session = require("express-session");
+require("dotenv").config();
 
-- redirects users to the authorize endpoint
-- exchanges the code on the server
-- stores its own local session
+const app = express();
 
-## Important Notes
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false
+    }
+  })
+);
 
-- only `response_type=code` is supported
-- only `grant_type=authorization_code` is supported
-- scopes currently advertised: `openid profile email`
-- tokens are signed with `RS256`
-- `client_secret` is required by the token endpoint
+const issuer = process.env.OIDC_ISSUER;
+const clientId = process.env.OIDC_CLIENT_ID;
+const clientSecret = process.env.OIDC_CLIENT_SECRET;
+const redirectUri = process.env.OIDC_REDIRECT_URI;
 
-## Future Improvement For Frontend-only Clients
+app.get("/", (req, res) => {
+  if (!req.session.user) {
+    return res.send('<a href="/login">Sign in with my-oidc-auth</a>');
+  }
 
-To properly support frontend-only clients, add:
+  res.send(`
+    <h1>Hello ${req.session.user.name || req.session.user.email}</h1>
+    <pre>${JSON.stringify(req.session.user, null, 2)}</pre>
+    <a href="/logout">Logout</a>
+  `);
+});
 
-- public client registration
-- PKCE verification
-- token endpoint rules that do not require `client_secret` for public clients
-- stricter client-type validation per application
+app.get("/login", (req, res) => {
+  const state = crypto.randomBytes(16).toString("hex");
+  req.session.oidcState = state;
+
+  const url = new URL(`${issuer}/auth/authorize`);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid profile email");
+  url.searchParams.set("state", state);
+
+  res.redirect(url.toString());
+});
+
+app.get("/auth/callback", async (req, res, next) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code) {
+      return res.status(400).send("Missing authorization code");
+    }
+
+    if (!state || state !== req.session.oidcState) {
+      return res.status(400).send("Invalid state");
+    }
+
+    delete req.session.oidcState;
+
+    const tokenResponse = await fetch(`${issuer}/auth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        client_id: clientId,
+        client_secret: clientSecret
+      })
+    });
+
+    const tokens = await tokenResponse.json();
+
+    if (!tokenResponse.ok) {
+      return res.status(tokenResponse.status).json(tokens);
+    }
+
+    const userInfoResponse = await fetch(`${issuer}/user/userinfo`, {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`
+      }
+    });
+
+    const user = await userInfoResponse.json();
+
+    if (!userInfoResponse.ok) {
+      return res.status(userInfoResponse.status).json(user);
+    }
+
+    req.session.user = user;
+    req.session.tokens = tokens;
+
+    res.redirect("/");
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/");
+  });
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`Client app running on http://localhost:${process.env.PORT || 3000}`);
+});
+```
+
+Run it:
+
+```bash
+node server.js
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## Integration 2: SPA With Vanilla HTML/CSS/JS Plus Backend
+
+In this setup:
+
+- vanilla frontend calls your backend
+- backend redirects to `my-oidc-auth`
+- backend exchanges the code for tokens
+- backend stores a secure session
+- frontend checks `/api/me` to know whether the user is signed in
+
+Install dependencies in your backend:
+
+```bash
+npm install express express-session dotenv
+```
+
+Create `.env`:
+
+```env
+PORT=3000
+OIDC_ISSUER=https://autho.subhrangsu.in
+OIDC_CLIENT_ID=YOUR_CLIENT_ID
+OIDC_CLIENT_SECRET=YOUR_CLIENT_SECRET
+OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
+SESSION_SECRET=change-this-long-random-value
+```
+
+Create this structure:
+
+```text
+client-app/
+  server.js
+  public/
+    index.html
+    styles.css
+    app.js
+```
+
+Create `server.js`:
+
+```js
+const crypto = require("node:crypto");
+const path = require("node:path");
+const express = require("express");
+const session = require("express-session");
+require("dotenv").config();
+
+const app = express();
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false
+    }
+  })
+);
+
+app.use(express.static(path.join(__dirname, "public")));
+
+const issuer = process.env.OIDC_ISSUER;
+const clientId = process.env.OIDC_CLIENT_ID;
+const clientSecret = process.env.OIDC_CLIENT_SECRET;
+const redirectUri = process.env.OIDC_REDIRECT_URI;
+
+app.get("/auth/login", (req, res) => {
+  const state = crypto.randomBytes(16).toString("hex");
+  req.session.oidcState = state;
+
+  const url = new URL(`${issuer}/auth/authorize`);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid profile email");
+  url.searchParams.set("state", state);
+
+  res.redirect(url.toString());
+});
+
+app.get("/auth/callback", async (req, res, next) => {
+  try {
+    const { code, state } = req.query;
+
+    if (!code) {
+      return res.status(400).send("Missing authorization code");
+    }
+
+    if (!state || state !== req.session.oidcState) {
+      return res.status(400).send("Invalid state");
+    }
+
+    delete req.session.oidcState;
+
+    const tokenResponse = await fetch(`${issuer}/auth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+        client_id: clientId,
+        client_secret: clientSecret
+      })
+    });
+
+    const tokens = await tokenResponse.json();
+
+    if (!tokenResponse.ok) {
+      return res.status(tokenResponse.status).json(tokens);
+    }
+
+    const userInfoResponse = await fetch(`${issuer}/user/userinfo`, {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`
+      }
+    });
+
+    const user = await userInfoResponse.json();
+
+    if (!userInfoResponse.ok) {
+      return res.status(userInfoResponse.status).json(user);
+    }
+
+    req.session.user = user;
+    req.session.tokens = tokens;
+
+    res.redirect("/");
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/me", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ authenticated: false });
+  }
+
+  res.json({
+    authenticated: true,
+    user: req.session.user
+  });
+});
+
+app.post("/auth/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.status(204).end();
+  });
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`SPA backend running on http://localhost:${process.env.PORT || 3000}`);
+});
+```
+
+Create `public/index.html`:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OIDC SPA Client</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="panel">
+        <h1>OIDC SPA Client</h1>
+        <p id="status">Checking session...</p>
+
+        <div class="actions">
+          <a id="login" class="button" href="/auth/login">Sign in</a>
+          <button id="logout" class="button secondary" type="button" hidden>Logout</button>
+        </div>
+
+        <pre id="profile" hidden></pre>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+```
+
+Create `public/styles.css`:
+
+```css
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+  background: #f4f7fb;
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.panel {
+  width: min(100%, 560px);
+  background: #ffffff;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.button {
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: #2563eb;
+  color: #ffffff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button.secondary {
+  background: #475569;
+}
+
+pre {
+  overflow: auto;
+  padding: 16px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+```
+
+Create `public/app.js`:
+
+```js
+const statusEl = document.querySelector("#status");
+const profileEl = document.querySelector("#profile");
+const loginEl = document.querySelector("#login");
+const logoutEl = document.querySelector("#logout");
+
+async function loadSession() {
+  const response = await fetch("/api/me");
+
+  if (response.status === 401) {
+    statusEl.textContent = "You are not signed in.";
+    loginEl.hidden = false;
+    logoutEl.hidden = true;
+    profileEl.hidden = true;
+    return;
+  }
+
+  const data = await response.json();
+
+  statusEl.textContent = `Signed in as ${data.user.email}`;
+  loginEl.hidden = true;
+  logoutEl.hidden = false;
+  profileEl.hidden = false;
+  profileEl.textContent = JSON.stringify(data.user, null, 2);
+}
+
+logoutEl.addEventListener("click", async () => {
+  await fetch("/auth/logout", { method: "POST" });
+  await loadSession();
+});
+
+loadSession().catch(() => {
+  statusEl.textContent = "Unable to load session.";
+});
+```
+
+Run it:
+
+```bash
+node server.js
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## Token Validation
+
+If your client validates `id_token` directly, load the provider JWKS:
+
+```text
+https://autho.subhrangsu.in/auth/jwks.json
+```
+
+Validate:
+
+- signature algorithm is `RS256`
+- token is not expired
+- `iss` matches your provider issuer
+- `sub` is present
+
+Many server apps can use `/user/userinfo` first and add full JWT validation later.
+
+## Common Errors
+
+`Invalid redirect_uri.`
+
+The callback URL in your request does not exactly match the registered redirect URI.
+
+`response_type=code is required.`
+
+Send `response_type=code` in the authorization URL.
+
+`Invalid client credentials.`
+
+The `client_id` or `client_secret` sent to `/auth/token` is wrong.
+
+`Invalid, expired, or already used authorization code.`
+
+Authorization codes expire after 5 minutes and can be used only once.
+
+`Missing or invalid Authorization header.`
+
+Call `/user/userinfo` with:
+
+```http
+Authorization: Bearer ACCESS_TOKEN
+```
+
+## Production Notes
+
+- Never put `clientSecret` in browser JavaScript.
+- Use HTTPS for production redirect URIs.
+- Use secure, HTTP-only cookies for your app session.
+- Generate and verify a random `state` value for every login.
+- Store tokens on the backend when possible.
+- Rotate `SESSION_SECRET` and client secrets if they are exposed.
+
+## Local Test Client
+
+See [`../oidc-test-client`](../oidc-test-client/README.md) for a backend client that demonstrates the supported authorization-code pattern.
