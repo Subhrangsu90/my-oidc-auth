@@ -134,10 +134,10 @@ function getDiscoveryMetadata(req: express.Request) {
 
 	return {
 		issuer: ISSUER,
-		authorization_endpoint: `${ISSUER}/auth/authorize`,
+		authorization_endpoint: `${ISSUER}/auth/authenticate`,
 		token_endpoint: `${ISSUER}/auth/token`,
 		userinfo_endpoint: `${ISSUER}/user/userinfo`,
-		jwks_uri: `${ISSUER}/auth/jwks.json`,
+		jwks_uri: `${ISSUER}/.well-known/jwks.json`,
 		response_types_supported: ["code"],
 		response_modes_supported: ["query"],
 		grant_types_supported: ["authorization_code"],
@@ -177,7 +177,7 @@ oidcRoute.get("/.well-known/openid-configuration", (req, res) => {
 to verify the signatures of JSON Web Tokens (JWTs) issued by the OpenID Connect provider.
 Clients can retrieve the JWKS to validate the authenticity of tokens received from the provider.
 * **/
-oidcRoute.get("/auth/jwks.json", async (req, res) => {
+oidcRoute.get("/.well-known/jwks.json", async (req, res) => {
 	const JWKS = await jose.JWK.asKey(PUBLIC_KEY, "pem");
 
 	res.set("Cache-Control", "public, max-age=300");
@@ -200,7 +200,7 @@ oidcRoute.get("/auth/jwks.json", async (req, res) => {
  such as the Authorization Code Flow, Implicit Flow, and Hybrid Flow.
  Clients redirect users to this endpoint to initiate the authentication process and obtain authorization codes or tokens.
 ** */
-oidcRoute.get("/auth/authorize", async (req, res) => {
+oidcRoute.get("/auth/authenticate", async (req, res) => {
 	const authorizationRequest = await resolveAuthorizationApplication(
 		req.query.client_id,
 		req.query.redirect_uri
@@ -305,7 +305,7 @@ oidcRoute.post("/auth/application/register", async (req, res) => {
 	}
 });
 
-oidcRoute.post("/auth/authorize/sign-in", async (req, res) => {
+oidcRoute.post("/auth/authenticate/sign-in", async (req, res) => {
 	try {
 		// Extract email and password from request body
 		const { email, password, clientId, redirectUri, state } = req.body;
@@ -345,7 +345,7 @@ oidcRoute.post("/auth/authorize/sign-in", async (req, res) => {
 		}
 
 		const code = createRandomToken(24);
-		const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+		const expiresAt = new Date(Date.now() + 60 * 1000); // Authorization code valid for 1 minute
 
 		await db.insert(authorizationCodesTable).values({
 			code,
@@ -449,7 +449,7 @@ oidcRoute.post("/auth/token", async (req, res) => {
 	}
 });
 
-oidcRoute.post("/auth/authorize/sign-up", async (req, res) => {
+oidcRoute.post("/auth/authenticate/sign-up", async (req, res) => {
 	try {
 		// Extract user data from request body
 		const { firstName, lastName, email, password, clientId, redirectUri } = req.body;

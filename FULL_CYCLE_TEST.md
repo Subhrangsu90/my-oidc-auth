@@ -72,16 +72,16 @@ curl http://localhost:8000/o/.well-known/oauth-authorization-server
 JWKS:
 
 ```bash
-curl http://localhost:8000/o/auth/jwks.json
+curl http://localhost:8000/.well-known/jwks.json
 ```
 
 Expected:
 
 - `issuer` points to `http://localhost:8000`
-- `authorization_endpoint` is `/o/auth/authorize`
-- `token_endpoint` is `/o/auth/token`
-- `userinfo_endpoint` is `/o/user/userinfo`
-- `jwks_uri` is `/o/auth/jwks.json`
+- `authorization_endpoint` is `/auth/authenticate`
+- `token_endpoint` is `/auth/token`
+- `userinfo_endpoint` is `/user/userinfo`
+- `jwks_uri` is `/.well-known/jwks.json`
 
 ## 4. Create A User Account
 

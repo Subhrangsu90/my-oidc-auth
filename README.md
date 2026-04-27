@@ -9,7 +9,7 @@ This provider currently supports the OpenID Connect Authorization Code flow and 
 Production issuer/discovery URL:
 
 ```text
-https://autho.subhrangsu.in/.well-known/openid-configuration
+https://autho.brewcodex.online/.well-known/openid-configuration
 ```
 
 Local development URL:
@@ -20,14 +20,14 @@ http://localhost:8000/.well-known/openid-configuration
 
 Important endpoints:
 
-| Purpose | Endpoint |
-| --- | --- |
-| Discovery | `/.well-known/openid-configuration` |
-| Authorization | `/auth/authorize` |
-| Token exchange | `/auth/token` |
-| User profile | `/user/userinfo` |
-| JWKS public keys | `/auth/jwks.json` |
-| Client registration UI | `/admin` |
+| Purpose                | Endpoint                            |
+| ---------------------- | ----------------------------------- |
+| Discovery              | `/.well-known/openid-configuration` |
+| Authorization          | `/auth/authenticate`                |
+| Token exchange         | `/auth/token`                       |
+| User profile           | `/user/userinfo`                    |
+| JWKS public keys       | `/.well-known/jwks.json`            |
+| Client registration UI | `/admin`                            |
 
 Supported values:
 
@@ -42,7 +42,7 @@ Supported values:
 Open the registration UI:
 
 ```text
-https://autho.subhrangsu.in/admin
+https://autho.brewcodex.online/admin
 ```
 
 For local development:
@@ -90,7 +90,7 @@ To support browser-only clients later, add public clients with PKCE and allow to
 
 ## OIDC Flow Summary
 
-1. Your app redirects the user to `/auth/authorize`.
+1. Your app redirects the user to `/auth/authenticate`.
 2. The user signs in on `my-oidc-auth`.
 3. `my-oidc-auth` redirects back to your registered `redirect_uri` with `code` and optional `state`.
 4. Your backend sends the `code`, `client_id`, and `client_secret` to `/auth/token`.
@@ -102,14 +102,14 @@ To support browser-only clients later, add public clients with PKCE and allow to
 ### Authorization URL
 
 ```text
-https://autho.subhrangsu.in/auth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code&scope=openid%20profile%20email&state=RANDOM_STATE
+https://autho.brewcodex.online/auth/authenticate?client_id=YOUR_CLIENT_ID&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code&scope=openid%20profile%20email&state=RANDOM_STATE
 ```
 
 ### Token Exchange
 
 ```http
 POST /auth/token
-Host: autho.subhrangsu.in
+Host: autho.brewcodex.online
 Content-Type: application/json
 
 {
@@ -125,10 +125,10 @@ Successful response:
 
 ```json
 {
-  "token_type": "Bearer",
-  "expires_in": 3600,
-  "access_token": "eyJ...",
-  "id_token": "eyJ..."
+	"token_type": "Bearer",
+	"expires_in": 3600,
+	"access_token": "eyJ...",
+	"id_token": "eyJ..."
 }
 ```
 
@@ -136,7 +136,7 @@ Successful response:
 
 ```http
 GET /user/userinfo
-Host: autho.subhrangsu.in
+Host: autho.brewcodex.online
 Authorization: Bearer ACCESS_TOKEN
 ```
 
@@ -144,13 +144,13 @@ Successful response:
 
 ```json
 {
-  "sub": "user-id",
-  "email": "user@example.com",
-  "email_verified": false,
-  "given_name": "Subhrangsu",
-  "family_name": "Example",
-  "name": "Subhrangsu Example",
-  "picture": null
+	"sub": "user-id",
+	"email": "user@example.com",
+	"email_verified": false,
+	"given_name": "Subhrangsu",
+	"family_name": "Example",
+	"name": "Subhrangsu Example",
+	"picture": null
 }
 ```
 
@@ -168,7 +168,7 @@ Create `.env` in your client app:
 
 ```env
 PORT=3000
-OIDC_ISSUER=https://autho.subhrangsu.in
+OIDC_ISSUER=https://autho.brewcodex.online
 OIDC_CLIENT_ID=YOUR_CLIENT_ID
 OIDC_CLIENT_SECRET=YOUR_CLIENT_SECRET
 OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
@@ -186,16 +186,16 @@ require("dotenv").config();
 const app = express();
 
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false
-    }
-  })
+	session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			httpOnly: true,
+			sameSite: "lax",
+			secure: false,
+		},
+	})
 );
 
 const issuer = process.env.OIDC_ISSUER;
@@ -204,11 +204,11 @@ const clientSecret = process.env.OIDC_CLIENT_SECRET;
 const redirectUri = process.env.OIDC_REDIRECT_URI;
 
 app.get("/", (req, res) => {
-  if (!req.session.user) {
-    return res.send('<a href="/login">Sign in with my-oidc-auth</a>');
-  }
+	if (!req.session.user) {
+		return res.send('<a href="/login">Sign in with my-oidc-auth</a>');
+	}
 
-  res.send(`
+	res.send(`
     <h1>Hello ${req.session.user.name || req.session.user.email}</h1>
     <pre>${JSON.stringify(req.session.user, null, 2)}</pre>
     <a href="/logout">Logout</a>
@@ -216,80 +216,80 @@ app.get("/", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const state = crypto.randomBytes(16).toString("hex");
-  req.session.oidcState = state;
+	const state = crypto.randomBytes(16).toString("hex");
+	req.session.oidcState = state;
 
-  const url = new URL(`${issuer}/auth/authorize`);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "openid profile email");
-  url.searchParams.set("state", state);
+	const url = new URL(`${issuer}/auth/authorize`);
+	url.searchParams.set("client_id", clientId);
+	url.searchParams.set("redirect_uri", redirectUri);
+	url.searchParams.set("response_type", "code");
+	url.searchParams.set("scope", "openid profile email");
+	url.searchParams.set("state", state);
 
-  res.redirect(url.toString());
+	res.redirect(url.toString());
 });
 
 app.get("/auth/callback", async (req, res, next) => {
-  try {
-    const { code, state } = req.query;
+	try {
+		const { code, state } = req.query;
 
-    if (!code) {
-      return res.status(400).send("Missing authorization code");
-    }
+		if (!code) {
+			return res.status(400).send("Missing authorization code");
+		}
 
-    if (!state || state !== req.session.oidcState) {
-      return res.status(400).send("Invalid state");
-    }
+		if (!state || state !== req.session.oidcState) {
+			return res.status(400).send("Invalid state");
+		}
 
-    delete req.session.oidcState;
+		delete req.session.oidcState;
 
-    const tokenResponse = await fetch(`${issuer}/auth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-        client_id: clientId,
-        client_secret: clientSecret
-      })
-    });
+		const tokenResponse = await fetch(`${issuer}/auth/token`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				grant_type: "authorization_code",
+				code,
+				redirect_uri: redirectUri,
+				client_id: clientId,
+				client_secret: clientSecret,
+			}),
+		});
 
-    const tokens = await tokenResponse.json();
+		const tokens = await tokenResponse.json();
 
-    if (!tokenResponse.ok) {
-      return res.status(tokenResponse.status).json(tokens);
-    }
+		if (!tokenResponse.ok) {
+			return res.status(tokenResponse.status).json(tokens);
+		}
 
-    const userInfoResponse = await fetch(`${issuer}/user/userinfo`, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`
-      }
-    });
+		const userInfoResponse = await fetch(`${issuer}/user/userinfo`, {
+			headers: {
+				Authorization: `Bearer ${tokens.access_token}`,
+			},
+		});
 
-    const user = await userInfoResponse.json();
+		const user = await userInfoResponse.json();
 
-    if (!userInfoResponse.ok) {
-      return res.status(userInfoResponse.status).json(user);
-    }
+		if (!userInfoResponse.ok) {
+			return res.status(userInfoResponse.status).json(user);
+		}
 
-    req.session.user = user;
-    req.session.tokens = tokens;
+		req.session.user = user;
+		req.session.tokens = tokens;
 
-    res.redirect("/");
-  } catch (error) {
-    next(error);
-  }
+		res.redirect("/");
+	} catch (error) {
+		next(error);
+	}
 });
 
 app.get("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/");
-  });
+	req.session.destroy(() => {
+		res.redirect("/");
+	});
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log(`Client app running on http://localhost:${process.env.PORT || 3000}`);
+	console.log(`Client app running on http://localhost:${process.env.PORT || 3000}`);
 });
 ```
 
@@ -325,7 +325,7 @@ Create `.env`:
 
 ```env
 PORT=3000
-OIDC_ISSUER=https://autho.subhrangsu.in
+OIDC_ISSUER=https://autho.brewcodex.online
 OIDC_CLIENT_ID=YOUR_CLIENT_ID
 OIDC_CLIENT_SECRET=YOUR_CLIENT_SECRET
 OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
@@ -355,16 +355,16 @@ require("dotenv").config();
 const app = express();
 
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false
-    }
-  })
+	session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			httpOnly: true,
+			sameSite: "lax",
+			secure: false,
+		},
+	})
 );
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -375,91 +375,91 @@ const clientSecret = process.env.OIDC_CLIENT_SECRET;
 const redirectUri = process.env.OIDC_REDIRECT_URI;
 
 app.get("/auth/login", (req, res) => {
-  const state = crypto.randomBytes(16).toString("hex");
-  req.session.oidcState = state;
+	const state = crypto.randomBytes(16).toString("hex");
+	req.session.oidcState = state;
 
-  const url = new URL(`${issuer}/auth/authorize`);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "openid profile email");
-  url.searchParams.set("state", state);
+	const url = new URL(`${issuer}/auth/authorize`);
+	url.searchParams.set("client_id", clientId);
+	url.searchParams.set("redirect_uri", redirectUri);
+	url.searchParams.set("response_type", "code");
+	url.searchParams.set("scope", "openid profile email");
+	url.searchParams.set("state", state);
 
-  res.redirect(url.toString());
+	res.redirect(url.toString());
 });
 
 app.get("/auth/callback", async (req, res, next) => {
-  try {
-    const { code, state } = req.query;
+	try {
+		const { code, state } = req.query;
 
-    if (!code) {
-      return res.status(400).send("Missing authorization code");
-    }
+		if (!code) {
+			return res.status(400).send("Missing authorization code");
+		}
 
-    if (!state || state !== req.session.oidcState) {
-      return res.status(400).send("Invalid state");
-    }
+		if (!state || state !== req.session.oidcState) {
+			return res.status(400).send("Invalid state");
+		}
 
-    delete req.session.oidcState;
+		delete req.session.oidcState;
 
-    const tokenResponse = await fetch(`${issuer}/auth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri,
-        client_id: clientId,
-        client_secret: clientSecret
-      })
-    });
+		const tokenResponse = await fetch(`${issuer}/auth/token`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				grant_type: "authorization_code",
+				code,
+				redirect_uri: redirectUri,
+				client_id: clientId,
+				client_secret: clientSecret,
+			}),
+		});
 
-    const tokens = await tokenResponse.json();
+		const tokens = await tokenResponse.json();
 
-    if (!tokenResponse.ok) {
-      return res.status(tokenResponse.status).json(tokens);
-    }
+		if (!tokenResponse.ok) {
+			return res.status(tokenResponse.status).json(tokens);
+		}
 
-    const userInfoResponse = await fetch(`${issuer}/user/userinfo`, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`
-      }
-    });
+		const userInfoResponse = await fetch(`${issuer}/user/userinfo`, {
+			headers: {
+				Authorization: `Bearer ${tokens.access_token}`,
+			},
+		});
 
-    const user = await userInfoResponse.json();
+		const user = await userInfoResponse.json();
 
-    if (!userInfoResponse.ok) {
-      return res.status(userInfoResponse.status).json(user);
-    }
+		if (!userInfoResponse.ok) {
+			return res.status(userInfoResponse.status).json(user);
+		}
 
-    req.session.user = user;
-    req.session.tokens = tokens;
+		req.session.user = user;
+		req.session.tokens = tokens;
 
-    res.redirect("/");
-  } catch (error) {
-    next(error);
-  }
+		res.redirect("/");
+	} catch (error) {
+		next(error);
+	}
 });
 
 app.get("/api/me", (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ authenticated: false });
-  }
+	if (!req.session.user) {
+		return res.status(401).json({ authenticated: false });
+	}
 
-  res.json({
-    authenticated: true,
-    user: req.session.user
-  });
+	res.json({
+		authenticated: true,
+		user: req.session.user,
+	});
 });
 
 app.post("/auth/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.status(204).end();
-  });
+	req.session.destroy(() => {
+		res.status(204).end();
+	});
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log(`SPA backend running on http://localhost:${process.env.PORT || 3000}`);
+	console.log(`SPA backend running on http://localhost:${process.env.PORT || 3000}`);
 });
 ```
 
@@ -468,29 +468,29 @@ Create `public/index.html`:
 ```html
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OIDC SPA Client</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <main class="shell">
-      <section class="panel">
-        <h1>OIDC SPA Client</h1>
-        <p id="status">Checking session...</p>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>OIDC SPA Client</title>
+		<link rel="stylesheet" href="/styles.css" />
+	</head>
+	<body>
+		<main class="shell">
+			<section class="panel">
+				<h1>OIDC SPA Client</h1>
+				<p id="status">Checking session...</p>
 
-        <div class="actions">
-          <a id="login" class="button" href="/auth/login">Sign in</a>
-          <button id="logout" class="button secondary" type="button" hidden>Logout</button>
-        </div>
+				<div class="actions">
+					<a id="login" class="button" href="/auth/login">Sign in</a>
+					<button id="logout" class="button secondary" type="button" hidden>Logout</button>
+				</div>
 
-        <pre id="profile" hidden></pre>
-      </section>
-    </main>
+				<pre id="profile" hidden></pre>
+			</section>
+		</main>
 
-    <script src="/app.js"></script>
-  </body>
+		<script src="/app.js"></script>
+	</body>
 </html>
 ```
 
@@ -498,58 +498,58 @@ Create `public/styles.css`:
 
 ```css
 * {
-  box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  color: #1f2937;
-  background: #f4f7fb;
+	margin: 0;
+	font-family: Arial, sans-serif;
+	color: #1f2937;
+	background: #f4f7fb;
 }
 
 .shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+	min-height: 100vh;
+	display: grid;
+	place-items: center;
+	padding: 24px;
 }
 
 .panel {
-  width: min(100%, 560px);
-  background: #ffffff;
-  border: 1px solid #d7dde8;
-  border-radius: 8px;
-  padding: 24px;
+	width: min(100%, 560px);
+	background: #ffffff;
+	border: 1px solid #d7dde8;
+	border-radius: 8px;
+	padding: 24px;
 }
 
 .actions {
-  display: flex;
-  gap: 12px;
-  margin: 20px 0;
+	display: flex;
+	gap: 12px;
+	margin: 20px 0;
 }
 
 .button {
-  border: 0;
-  border-radius: 6px;
-  padding: 10px 14px;
-  background: #2563eb;
-  color: #ffffff;
-  font: inherit;
-  text-decoration: none;
-  cursor: pointer;
+	border: 0;
+	border-radius: 6px;
+	padding: 10px 14px;
+	background: #2563eb;
+	color: #ffffff;
+	font: inherit;
+	text-decoration: none;
+	cursor: pointer;
 }
 
 .button.secondary {
-  background: #475569;
+	background: #475569;
 }
 
 pre {
-  overflow: auto;
-  padding: 16px;
-  border-radius: 6px;
-  background: #0f172a;
-  color: #e2e8f0;
+	overflow: auto;
+	padding: 16px;
+	border-radius: 6px;
+	background: #0f172a;
+	color: #e2e8f0;
 }
 ```
 
@@ -562,32 +562,32 @@ const loginEl = document.querySelector("#login");
 const logoutEl = document.querySelector("#logout");
 
 async function loadSession() {
-  const response = await fetch("/api/me");
+	const response = await fetch("/api/me");
 
-  if (response.status === 401) {
-    statusEl.textContent = "You are not signed in.";
-    loginEl.hidden = false;
-    logoutEl.hidden = true;
-    profileEl.hidden = true;
-    return;
-  }
+	if (response.status === 401) {
+		statusEl.textContent = "You are not signed in.";
+		loginEl.hidden = false;
+		logoutEl.hidden = true;
+		profileEl.hidden = true;
+		return;
+	}
 
-  const data = await response.json();
+	const data = await response.json();
 
-  statusEl.textContent = `Signed in as ${data.user.email}`;
-  loginEl.hidden = true;
-  logoutEl.hidden = false;
-  profileEl.hidden = false;
-  profileEl.textContent = JSON.stringify(data.user, null, 2);
+	statusEl.textContent = `Signed in as ${data.user.email}`;
+	loginEl.hidden = true;
+	logoutEl.hidden = false;
+	profileEl.hidden = false;
+	profileEl.textContent = JSON.stringify(data.user, null, 2);
 }
 
 logoutEl.addEventListener("click", async () => {
-  await fetch("/auth/logout", { method: "POST" });
-  await loadSession();
+	await fetch("/auth/logout", { method: "POST" });
+	await loadSession();
 });
 
 loadSession().catch(() => {
-  statusEl.textContent = "Unable to load session.";
+	statusEl.textContent = "Unable to load session.";
 });
 ```
 
@@ -608,7 +608,7 @@ http://localhost:3000
 If your client validates `id_token` directly, load the provider JWKS:
 
 ```text
-https://autho.subhrangsu.in/auth/jwks.json
+https://autho.brewcodex.online/.well-known/jwks.json
 ```
 
 Validate:

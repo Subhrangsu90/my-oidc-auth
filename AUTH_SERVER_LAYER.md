@@ -130,7 +130,7 @@ Every client app needs its own registered OIDC application.
 PORT=3000
 APP_BASE_URL=http://localhost:3000
 
-OIDC_ISSUER=https://autho.subhrangsu.in
+OIDC_ISSUER=https://autho.brewcodex.online
 OIDC_CLIENT_ID=YOUR_CLIENT_ID
 OIDC_CLIENT_SECRET=YOUR_CLIENT_SECRET
 OIDC_REDIRECT_URI=http://localhost:3000/auth/callback
@@ -164,134 +164,134 @@ Create `auth-layer.js`:
 const crypto = require("node:crypto");
 
 function createAuthLayer(config, userStore) {
-  function requireAuth(req, res, next) {
-    if (!req.session.user) {
-      return res.status(401).json({
-        authenticated: false,
-        message: "Login required"
-      });
-    }
+	function requireAuth(req, res, next) {
+		if (!req.session.user) {
+			return res.status(401).json({
+				authenticated: false,
+				message: "Login required",
+			});
+		}
 
-    next();
-  }
+		next();
+	}
 
-  function getCurrentUser(req) {
-    return req.session.user || null;
-  }
+	function getCurrentUser(req) {
+		return req.session.user || null;
+	}
 
-  function login(req, res) {
-    const state = crypto.randomBytes(16).toString("hex");
-    req.session.oidcState = state;
+	function login(req, res) {
+		const state = crypto.randomBytes(16).toString("hex");
+		req.session.oidcState = state;
 
-    const url = new URL(`${config.issuer}/auth/authorize`);
-    url.searchParams.set("client_id", config.clientId);
-    url.searchParams.set("redirect_uri", config.redirectUri);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("scope", "openid profile email");
-    url.searchParams.set("state", state);
+		const url = new URL(`${config.issuer}/auth/authorize`);
+		url.searchParams.set("client_id", config.clientId);
+		url.searchParams.set("redirect_uri", config.redirectUri);
+		url.searchParams.set("response_type", "code");
+		url.searchParams.set("scope", "openid profile email");
+		url.searchParams.set("state", state);
 
-    res.redirect(url.toString());
-  }
+		res.redirect(url.toString());
+	}
 
-  async function callback(req, res, next) {
-    try {
-      const { code, state } = req.query;
+	async function callback(req, res, next) {
+		try {
+			const { code, state } = req.query;
 
-      if (!code) {
-        return res.status(400).send("Missing authorization code");
-      }
+			if (!code) {
+				return res.status(400).send("Missing authorization code");
+			}
 
-      if (!state || state !== req.session.oidcState) {
-        return res.status(400).send("Invalid state");
-      }
+			if (!state || state !== req.session.oidcState) {
+				return res.status(400).send("Invalid state");
+			}
 
-      delete req.session.oidcState;
+			delete req.session.oidcState;
 
-      const tokenResponse = await fetch(`${config.issuer}/auth/token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: config.redirectUri,
-          client_id: config.clientId,
-          client_secret: config.clientSecret
-        })
-      });
+			const tokenResponse = await fetch(`${config.issuer}/auth/token`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					grant_type: "authorization_code",
+					code,
+					redirect_uri: config.redirectUri,
+					client_id: config.clientId,
+					client_secret: config.clientSecret,
+				}),
+			});
 
-      const tokens = await tokenResponse.json();
+			const tokens = await tokenResponse.json();
 
-      if (!tokenResponse.ok) {
-        return res.status(tokenResponse.status).json(tokens);
-      }
+			if (!tokenResponse.ok) {
+				return res.status(tokenResponse.status).json(tokens);
+			}
 
-      const userInfoResponse = await fetch(`${config.issuer}/user/userinfo`, {
-        headers: {
-          Authorization: `Bearer ${tokens.access_token}`
-        }
-      });
+			const userInfoResponse = await fetch(`${config.issuer}/user/userinfo`, {
+				headers: {
+					Authorization: `Bearer ${tokens.access_token}`,
+				},
+			});
 
-      const oidcUser = await userInfoResponse.json();
+			const oidcUser = await userInfoResponse.json();
 
-      if (!userInfoResponse.ok) {
-        return res.status(userInfoResponse.status).json(oidcUser);
-      }
+			if (!userInfoResponse.ok) {
+				return res.status(userInfoResponse.status).json(oidcUser);
+			}
 
-      const appUser = await userStore.findOrCreateFromOidc(oidcUser);
+			const appUser = await userStore.findOrCreateFromOidc(oidcUser);
 
-      req.session.user = {
-        id: appUser.id,
-        oidcSub: oidcUser.sub,
-        email: oidcUser.email,
-        name: oidcUser.name,
-        role: appUser.role
-      };
+			req.session.user = {
+				id: appUser.id,
+				oidcSub: oidcUser.sub,
+				email: oidcUser.email,
+				name: oidcUser.name,
+				role: appUser.role,
+			};
 
-      req.session.tokens = {
-        accessToken: tokens.access_token,
-        idToken: tokens.id_token,
-        expiresIn: tokens.expires_in
-      };
+			req.session.tokens = {
+				accessToken: tokens.access_token,
+				idToken: tokens.id_token,
+				expiresIn: tokens.expires_in,
+			};
 
-      res.redirect(config.afterLoginPath || "/");
-    } catch (error) {
-      next(error);
-    }
-  }
+			res.redirect(config.afterLoginPath || "/");
+		} catch (error) {
+			next(error);
+		}
+	}
 
-  function me(req, res) {
-    if (!req.session.user) {
-      return res.status(401).json({
-        authenticated: false
-      });
-    }
+	function me(req, res) {
+		if (!req.session.user) {
+			return res.status(401).json({
+				authenticated: false,
+			});
+		}
 
-    res.json({
-      authenticated: true,
-      user: req.session.user
-    });
-  }
+		res.json({
+			authenticated: true,
+			user: req.session.user,
+		});
+	}
 
-  function logout(req, res) {
-    req.session.destroy(() => {
-      res.status(204).end();
-    });
-  }
+	function logout(req, res) {
+		req.session.destroy(() => {
+			res.status(204).end();
+		});
+	}
 
-  return {
-    callback,
-    getCurrentUser,
-    login,
-    logout,
-    me,
-    requireAuth
-  };
+	return {
+		callback,
+		getCurrentUser,
+		login,
+		logout,
+		me,
+		requireAuth,
+	};
 }
 
 module.exports = {
-  createAuthLayer
+	createAuthLayer,
 };
 ```
 
@@ -312,52 +312,52 @@ const app = express();
 app.use(express.json());
 
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false
-    }
-  })
+	session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			httpOnly: true,
+			sameSite: "lax",
+			secure: false,
+		},
+	})
 );
 
 const users = new Map();
 
 const userStore = {
-  async findOrCreateFromOidc(oidcUser) {
-    const existingUser = users.get(oidcUser.sub);
+	async findOrCreateFromOidc(oidcUser) {
+		const existingUser = users.get(oidcUser.sub);
 
-    if (existingUser) {
-      existingUser.email = oidcUser.email;
-      existingUser.displayName = oidcUser.name;
-      return existingUser;
-    }
+		if (existingUser) {
+			existingUser.email = oidcUser.email;
+			existingUser.displayName = oidcUser.name;
+			return existingUser;
+		}
 
-    const newUser = {
-      id: crypto.randomUUID(),
-      oidcSub: oidcUser.sub,
-      email: oidcUser.email,
-      displayName: oidcUser.name,
-      role: "user"
-    };
+		const newUser = {
+			id: crypto.randomUUID(),
+			oidcSub: oidcUser.sub,
+			email: oidcUser.email,
+			displayName: oidcUser.name,
+			role: "user",
+		};
 
-    users.set(oidcUser.sub, newUser);
-    return newUser;
-  }
+		users.set(oidcUser.sub, newUser);
+		return newUser;
+	},
 };
 
 const auth = createAuthLayer(
-  {
-    issuer: process.env.OIDC_ISSUER,
-    clientId: process.env.OIDC_CLIENT_ID,
-    clientSecret: process.env.OIDC_CLIENT_SECRET,
-    redirectUri: process.env.OIDC_REDIRECT_URI,
-    afterLoginPath: "/"
-  },
-  userStore
+	{
+		issuer: process.env.OIDC_ISSUER,
+		clientId: process.env.OIDC_CLIENT_ID,
+		clientSecret: process.env.OIDC_CLIENT_SECRET,
+		redirectUri: process.env.OIDC_REDIRECT_URI,
+		afterLoginPath: "/",
+	},
+	userStore
 );
 
 app.get("/auth/login", auth.login);
@@ -366,28 +366,28 @@ app.get("/api/me", auth.me);
 app.post("/auth/logout", auth.logout);
 
 app.get("/api/products", auth.requireAuth, (req, res) => {
-  res.json({
-    user: req.session.user,
-    products: [
-      { id: 1, name: "Starter Plan" },
-      { id: 2, name: "Pro Plan" }
-    ]
-  });
+	res.json({
+		user: req.session.user,
+		products: [
+			{ id: 1, name: "Starter Plan" },
+			{ id: 2, name: "Pro Plan" },
+		],
+	});
 });
 
 app.post("/api/orders", auth.requireAuth, (req, res) => {
-  const order = {
-    id: crypto.randomUUID(),
-    userId: req.session.user.id,
-    oidcSub: req.session.user.oidcSub,
-    items: req.body.items || []
-  };
+	const order = {
+		id: crypto.randomUUID(),
+		userId: req.session.user.id,
+		oidcSub: req.session.user.oidcSub,
+		items: req.body.items || [],
+	};
 
-  res.status(201).json(order);
+	res.status(201).json(order);
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log(`Client app running on http://localhost:${process.env.PORT || 3000}`);
+	console.log(`Client app running on http://localhost:${process.env.PORT || 3000}`);
 });
 ```
 
@@ -399,36 +399,36 @@ Your `findOrCreateFromOidc` function should do this:
 
 ```js
 async function findOrCreateFromOidc(oidcUser) {
-  let appUser = await db.users.findFirst({
-    where: {
-      oidcSub: oidcUser.sub
-    }
-  });
+	let appUser = await db.users.findFirst({
+		where: {
+			oidcSub: oidcUser.sub,
+		},
+	});
 
-  if (!appUser) {
-    appUser = await db.users.create({
-      data: {
-        oidcSub: oidcUser.sub,
-        email: oidcUser.email,
-        displayName: oidcUser.name,
-        role: "user"
-      }
-    });
-  }
+	if (!appUser) {
+		appUser = await db.users.create({
+			data: {
+				oidcSub: oidcUser.sub,
+				email: oidcUser.email,
+				displayName: oidcUser.name,
+				role: "user",
+			},
+		});
+	}
 
-  if (appUser.email !== oidcUser.email || appUser.displayName !== oidcUser.name) {
-    appUser = await db.users.update({
-      where: {
-        id: appUser.id
-      },
-      data: {
-        email: oidcUser.email,
-        displayName: oidcUser.name
-      }
-    });
-  }
+	if (appUser.email !== oidcUser.email || appUser.displayName !== oidcUser.name) {
+		appUser = await db.users.update({
+			where: {
+				id: appUser.id,
+			},
+			data: {
+				email: oidcUser.email,
+				displayName: oidcUser.name,
+			},
+		});
+	}
 
-  return appUser;
+	return appUser;
 }
 ```
 
@@ -446,62 +446,62 @@ The frontend does not call `my-oidc-auth` directly for tokens. It calls your own
 ```html
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Website Using my-oidc-auth</title>
-  </head>
-  <body>
-    <h1>Website</h1>
-    <p id="status">Checking auth...</p>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Website Using my-oidc-auth</title>
+	</head>
+	<body>
+		<h1>Website</h1>
+		<p id="status">Checking auth...</p>
 
-    <a id="login" href="/auth/login" hidden>Login</a>
-    <button id="logout" type="button" hidden>Logout</button>
-    <button id="load-products" type="button" hidden>Load products</button>
+		<a id="login" href="/auth/login" hidden>Login</a>
+		<button id="logout" type="button" hidden>Logout</button>
+		<button id="load-products" type="button" hidden>Load products</button>
 
-    <pre id="output"></pre>
+		<pre id="output"></pre>
 
-    <script>
-      const statusEl = document.querySelector("#status");
-      const loginEl = document.querySelector("#login");
-      const logoutEl = document.querySelector("#logout");
-      const loadProductsEl = document.querySelector("#load-products");
-      const outputEl = document.querySelector("#output");
+		<script>
+			const statusEl = document.querySelector("#status");
+			const loginEl = document.querySelector("#login");
+			const logoutEl = document.querySelector("#logout");
+			const loadProductsEl = document.querySelector("#load-products");
+			const outputEl = document.querySelector("#output");
 
-      async function loadMe() {
-        const response = await fetch("/api/me");
+			async function loadMe() {
+				const response = await fetch("/api/me");
 
-        if (response.status === 401) {
-          statusEl.textContent = "Not logged in";
-          loginEl.hidden = false;
-          logoutEl.hidden = true;
-          loadProductsEl.hidden = true;
-          return;
-        }
+				if (response.status === 401) {
+					statusEl.textContent = "Not logged in";
+					loginEl.hidden = false;
+					logoutEl.hidden = true;
+					loadProductsEl.hidden = true;
+					return;
+				}
 
-        const data = await response.json();
-        statusEl.textContent = `Logged in as ${data.user.email}`;
-        outputEl.textContent = JSON.stringify(data.user, null, 2);
-        loginEl.hidden = true;
-        logoutEl.hidden = false;
-        loadProductsEl.hidden = false;
-      }
+				const data = await response.json();
+				statusEl.textContent = `Logged in as ${data.user.email}`;
+				outputEl.textContent = JSON.stringify(data.user, null, 2);
+				loginEl.hidden = true;
+				logoutEl.hidden = false;
+				loadProductsEl.hidden = false;
+			}
 
-      logoutEl.addEventListener("click", async () => {
-        await fetch("/auth/logout", { method: "POST" });
-        outputEl.textContent = "";
-        await loadMe();
-      });
+			logoutEl.addEventListener("click", async () => {
+				await fetch("/auth/logout", { method: "POST" });
+				outputEl.textContent = "";
+				await loadMe();
+			});
 
-      loadProductsEl.addEventListener("click", async () => {
-        const response = await fetch("/api/products");
-        const data = await response.json();
-        outputEl.textContent = JSON.stringify(data, null, 2);
-      });
+			loadProductsEl.addEventListener("click", async () => {
+				const response = await fetch("/api/products");
+				const data = await response.json();
+				outputEl.textContent = JSON.stringify(data, null, 2);
+			});
 
-      loadMe();
-    </script>
-  </body>
+			loadMe();
+		</script>
+	</body>
 </html>
 ```
 
@@ -511,19 +511,19 @@ Use `auth.requireAuth` on routes that need a logged-in user:
 
 ```js
 app.get("/api/profile", auth.requireAuth, (req, res) => {
-  res.json({
-    user: req.session.user
-  });
+	res.json({
+		user: req.session.user,
+	});
 });
 
 app.get("/api/my-orders", auth.requireAuth, async (req, res) => {
-  const orders = await db.orders.findMany({
-    where: {
-      userId: req.session.user.id
-    }
-  });
+	const orders = await db.orders.findMany({
+		where: {
+			userId: req.session.user.id,
+		},
+	});
 
-  res.json({ orders });
+	res.json({ orders });
 });
 ```
 
@@ -531,22 +531,22 @@ Use roles for authorization:
 
 ```js
 function requireRole(role) {
-  return (req, res, next) => {
-    if (!req.session.user) {
-      return res.status(401).json({ message: "Login required" });
-    }
+	return (req, res, next) => {
+		if (!req.session.user) {
+			return res.status(401).json({ message: "Login required" });
+		}
 
-    if (req.session.user.role !== role) {
-      return res.status(403).json({ message: "Forbidden" });
-    }
+		if (req.session.user.role !== role) {
+			return res.status(403).json({ message: "Forbidden" });
+		}
 
-    next();
-  };
+		next();
+	};
 }
 
 app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
-  const users = await db.users.findMany();
-  res.json({ users });
+	const users = await db.users.findMany();
+	res.json({ users });
 });
 ```
 
@@ -599,10 +599,10 @@ Each website can have different app roles and data, but the login identity is sh
 Your client backend talks to these `my-oidc-auth` endpoints:
 
 ```text
-GET  https://autho.subhrangsu.in/auth/authorize
-POST https://autho.subhrangsu.in/auth/token
-GET  https://autho.subhrangsu.in/user/userinfo
-GET  https://autho.subhrangsu.in/auth/jwks.json
+GET  https://autho.brewcodex.online/auth/authorize
+POST https://autho.brewcodex.online/auth/token
+GET  https://autho.brewcodex.online/user/userinfo
+GET  https://autho.brewcodex.online/auth/jwks.json
 ```
 
 Your website frontend talks only to your website backend:
