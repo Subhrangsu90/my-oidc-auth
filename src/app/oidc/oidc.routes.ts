@@ -12,11 +12,18 @@ import JWT from "jsonwebtoken";
 
 export const oidcRoute: Router = express.Router();
 
+const SIGNING_KEY_ID = process.env.OIDC_KEY_ID || "oidc-signing-key-1";
+const TOKEN_TTL_SECONDS = 3600;
+
 function createRandomToken(bytes = 32) {
 	return crypto.randomBytes(bytes).toString("base64url");
 }
 
 function getIssuer(req?: express.Request) {
+	if (process.env.OIDC_ISSUER) {
+		return process.env.OIDC_ISSUER.replace(/\/$/, "");
+	}
+
 	if (req) {
 		return `${req.protocol}://${req.get("host")}`;
 	}
@@ -31,16 +38,17 @@ function splitRedirectURIs(redirectURIs: string) {
 		.filter(Boolean);
 }
 
-function createUserJWT(user: typeof usersTable.$inferSelect) {
-	const ISSUER = `http://localhost:${process.env.PORT ?? 8000}`;
+function createUserJWT(user: typeof usersTable.$inferSelect, issuer: string, audience: string) {
 	const now = Math.floor(Date.now() / 1000);
 
 	const claims: JWTClaims = {
-		iss: ISSUER,
+		iss: issuer,
 		sub: user.id,
+		aud: audience,
 		email: user.email,
 		email_verified: Boolean(user.emailVerified),
-		exp: now + 3600,
+		iat: now,
+		exp: now + TOKEN_TTL_SECONDS,
 		given_name: user.firstName ?? "",
 		family_name: user.lastName ?? undefined,
 		name: [user.firstName, user.lastName].filter(Boolean).join(" "),
@@ -49,6 +57,7 @@ function createUserJWT(user: typeof usersTable.$inferSelect) {
 
 	return JWT.sign(claims, PRIVATE_KEY, {
 		algorithm: "RS256",
+		keyid: SIGNING_KEY_ID,
 	});
 }
 
@@ -130,12 +139,18 @@ function getDiscoveryMetadata(req: express.Request) {
 		userinfo_endpoint: `${ISSUER}/user/userinfo`,
 		jwks_uri: `${ISSUER}/auth/jwks.json`,
 		response_types_supported: ["code"],
+		response_modes_supported: ["query"],
 		grant_types_supported: ["authorization_code"],
 		subject_types_supported: ["public"],
 		id_token_signing_alg_values_supported: ["RS256"],
+		token_endpoint_auth_methods_supported: ["client_secret_post"],
 		scopes_supported: ["openid", "profile", "email"],
 		claims_supported: [
+			"iss",
 			"sub",
+			"aud",
+			"exp",
+			"iat",
 			"email",
 			"email_verified",
 			"given_name",
@@ -165,8 +180,17 @@ Clients can retrieve the JWKS to validate the authenticity of tokens received fr
 oidcRoute.get("/auth/jwks.json", async (req, res) => {
 	const JWKS = await jose.JWK.asKey(PUBLIC_KEY, "pem");
 
+	res.set("Cache-Control", "public, max-age=300");
+
 	return res.json({
-		keys: [JWKS.toJSON()],
+		keys: [
+			{
+				...JWKS.toJSON(),
+				kid: SIGNING_KEY_ID,
+				use: "sig",
+				alg: "RS256",
+			},
+		],
 	});
 });
 
@@ -403,7 +427,7 @@ oidcRoute.post("/auth/token", async (req, res) => {
 			return;
 		}
 
-		const token = createUserJWT(user);
+		const token = createUserJWT(user, getIssuer(req), application.clientId);
 
 		await db
 			.update(authorizationCodesTable)
@@ -412,7 +436,7 @@ oidcRoute.post("/auth/token", async (req, res) => {
 
 		res.json({
 			token_type: "Bearer",
-			expires_in: 3600,
+			expires_in: TOKEN_TTL_SECONDS,
 			access_token: token,
 			id_token: token,
 		});
@@ -504,6 +528,7 @@ oidcRoute.get("/user/userinfo", async (req, res) => {
 	try {
 		claims = JWT.verify(token, PUBLIC_KEY, {
 			algorithms: ["RS256"],
+			issuer: getIssuer(req),
 		}) as JWTClaims;
 	} catch {
 		res.status(401).json({
