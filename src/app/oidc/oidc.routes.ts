@@ -21,6 +21,7 @@ const SIGNING_KEY_ID = process.env.OIDC_KEY_ID || "oidc-signing-key-1";
 const ACCESS_TOKEN_TTL_SECONDS = 3600;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const REFRESH_TOKEN_COOKIE_NAME = "oidc_refresh_token";
+const OIDC_SESSION_COOKIE_NAME = "oidc_session";
 
 function shouldUseSecureCookies(req: express.Request) {
 	if (typeof process.env.COOKIE_SECURE === "string") {

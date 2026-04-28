@@ -141,7 +141,7 @@
 				statusMessage.className = "status";
 
 				try {
-					const response = await fetch("/auth/authorize/sign-in", {
+					const response = await fetch("/auth/authenticate/sign-in", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
