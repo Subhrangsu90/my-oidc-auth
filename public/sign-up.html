@@ -3,21 +3,24 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Sign up | browcodex Auth</title>
+		<title>Sign up | brewcodex Auth</title>
 		<link rel="stylesheet" href="/oidc.css" />
 	</head>
 
 	<body>
+		<header class="site-header">
+			<div class="brand" aria-label="brewcodex Auth">
+				<div class="brand-mark">
+					<img class="brand-logo" src="/brand-logo.svg" alt="brewcodex Auth logo" />
+				</div>
+				<div class="brand-text">
+					<strong>brewcodex Auth</strong>
+					<span>OAuth 2.0 + OpenID Connect</span>
+				</div>
+			</div>
+		</header>
 		<main>
 			<section class="sign-up-card" aria-labelledby="sign-up-title">
-				<div class="brand" aria-label="browcodex Auth">
-					<div class="brand-mark">bc</div>
-					<div class="brand-text">
-						<strong>browcodex Auth</strong>
-						<span>by Subhrangsu</span>
-					</div>
-				</div>
-
 				<h1 id="sign-up-title">Sign up</h1>
 				<p class="subtitle">Create your account to continue with the requested application.</p>
 				<div id="client-context" class="client-context" aria-live="polite">
@@ -83,6 +86,7 @@
 				</p>
 			</section>
 		</main>
+		<footer class="site-footer">Made with ❤️ by Subhrangsu</footer>
 
 		<script>
 			const form = document.querySelector("#sign-up-form");

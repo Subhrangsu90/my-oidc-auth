@@ -1,0 +1,22 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="browcodex Auth logo">
+  <rect x="8" y="8" width="144" height="144" rx="32" fill="url(#bg)"/>
+  <rect x="8" y="8" width="144" height="144" rx="32" stroke="url(#stroke)" stroke-width="2"/>
+  <path d="M80 38L113 57V95C113 113.778 99.1207 131.478 80 136C60.8793 131.478 47 113.778 47 95V57L80 38Z" fill="url(#shield)"/>
+  <circle cx="80" cy="88" r="22" fill="#0F172A"/>
+  <path d="M80 72C71.1634 72 64 79.1634 64 88C64 96.8366 71.1634 104 80 104C88.8366 104 96 96.8366 96 88C96 79.1634 88.8366 72 80 72ZM80 77.5C85.799 77.5 90.5 82.201 90.5 88C90.5 93.799 85.799 98.5 80 98.5C74.201 98.5 69.5 93.799 69.5 88C69.5 82.201 74.201 77.5 80 77.5Z" fill="#E2E8F0"/>
+  <path d="M80 82.6C77.0177 82.6 74.6 85.0177 74.6 88C74.6 90.9823 77.0177 93.4 80 93.4C82.9823 93.4 85.4 90.9823 85.4 88C85.4 85.0177 82.9823 82.6 80 82.6Z" fill="#E2E8F0"/>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="16" x2="136" y2="148" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1F2937"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="16" y1="16" x2="136" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#94A3B8" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#94A3B8" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="56" y1="47" x2="109" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#CBD5E1"/>
+    </linearGradient>
+  </defs>
+</svg>

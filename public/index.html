@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>OIDC Auth Service | brewcodex Auth</title>
+		<link rel="stylesheet" href="/oidc.css" />
+	</head>
+	<body class="landing-page">
+		<main class="landing-main">
+			<nav class="landing-nav">
+				<div class="brand">
+					<div class="brand-mark">
+						<img class="brand-logo" src="/brand-logo.svg" alt="brewcodex Auth logo" />
+					</div>
+					<div class="brand-text">
+						<strong>brewcodex Auth</strong>
+						<span>OAuth 2.0 + OpenID Connect</span>
+					</div>
+				</div>
+				<div class="landing-nav-links">
+					<a href="#supports">What it supports</a>
+					<a href="#flow">Flow</a>
+					<a href="#metadata">Metadata</a>
+					<a href="#credits">Credits</a>
+					<a href="#limitations">Limitations</a>
+					<a
+						class="nav-icon-link"
+						href="https://github.com/Subhrangsu90/my-oidc-auth"
+						target="_blank"
+						rel="noreferrer"
+						aria-label="Open GitHub repository"
+						title="GitHub repository">
+						<svg viewBox="0 0 24 24" aria-hidden="true">
+							<path
+								d="M12 2C6.48 2 2 6.58 2 12.24c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49 0-.24-.01-1.04-.01-1.89-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.36 1.12 2.94.86.09-.67.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.34 9.34 0 0 1 12 6.99c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9 0 1.38-.01 2.49-.01 2.83 0 .27.18.59.69.49A10.1 10.1 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z" />
+						</svg>
+					</a>
+				</div>
+			</nav>
+
+			<header class="landing-hero">
+				<div class="eyebrow">OpenID Connect Provider</div>
+				<h1>Build And Run OIDC Flow End To End</h1>
+				<p class="subtitle">
+					I built this auth server to understand OAuth 2.0 and OpenID Connect by implementing app
+					registration, sign-in, sign-up, code exchange, token refresh, user info, logout, and token
+					revoke.
+				</p>
+				<div class="landing-actions">
+					<a class="button" href="/admin">Register App</a>
+					<a class="button secondary" href="/auth/authenticate">Sign In</a>
+					<a class="button secondary" href="/sign-up">Create Account</a>
+					<a class="button secondary" href="/.well-known/openid-configuration"> View Metadata </a>
+				</div>
+			</header>
+
+			<section id="supports" class="landing-section">
+				<h2>What It Supports</h2>
+				<ul>
+					<li>Authorization Code Flow</li>
+					<li>ID token, access token, refresh token</li>
+					<li>OIDC discovery and JWKS endpoints</li>
+					<li>User profile endpoint and client registration</li>
+				</ul>
+			</section>
+
+			<section id="flow" class="landing-section">
+				<h2>How The Flow Works</h2>
+				<ol>
+					<li>Client app registers and gets credentials from <code>/admin</code>.</li>
+					<li>User signs in through hosted authentication page.</li>
+					<li>Client receives code on redirect URI and exchanges at <code>/auth/token</code>.</li>
+					<li>Client calls <code>/user/userinfo</code> and refreshes token when needed.</li>
+				</ol>
+			</section>
+
+			<section id="metadata" class="landing-section metadata-section">
+				<div class="section-heading-row">
+					<div>
+						<h2>Discovery Metadata</h2>
+						<p>
+							Clients can read one JSON document to learn every OIDC endpoint this provider exposes.
+						</p>
+					</div>
+					<a class="button secondary compact-button" href="/.well-known/openid-configuration">
+						Open JSON
+					</a>
+				</div>
+				<div class="metadata-visual" aria-label="OIDC metadata endpoint map">
+					<div class="metadata-node metadata-node-primary">
+						<span>Discovery</span>
+						<strong>/.well-known/openid-configuration</strong>
+					</div>
+					<div class="metadata-branch">
+						<div class="metadata-node">
+							<span>Authorize</span>
+							<strong>/auth/authenticate</strong>
+						</div>
+						<div class="metadata-node">
+							<span>Token</span>
+							<strong>/auth/token</strong>
+						</div>
+						<div class="metadata-node">
+							<span>JWKS</span>
+							<strong>/.well-known/jwks.json</strong>
+						</div>
+						<div class="metadata-node">
+							<span>User Info</span>
+							<strong>/user/userinfo</strong>
+						</div>
+						<div class="metadata-node">
+							<span>Logout</span>
+							<strong>/auth/logout</strong>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- <section class="landing-section">
+			<h2>Try It Practically</h2>
+			<p>Use the demo flow from application registration and run the whole OIDC cycle manually.</p>
+			<div class="landing-actions">
+				<a class="button" href="/admin">Open Demo-Client Setup</a>
+			</div>
+		</section> -->
+
+			<section id="limitations" class="landing-section">
+				<h2>Current Limitations</h2>
+				<ul>
+					<li>No signing key rotation yet.</li>
+					<li>No advanced abuse/rate-limit layer yet.</li>
+					<li>Public client + PKCE hardening is not complete.</li>
+				</ul>
+			</section>
+
+			<section id="credits" class="landing-section credits-section">
+				<h2>Inspired And Taught By</h2>
+				<p>
+					This project is part of my hands-on learning journey with OAuth 2.0 and OpenID Connect.
+					Thanks to the teachers and builders whose content helped me understand the concepts and
+					turn them into working code.
+				</p>
+				<div class="profile-links">
+					<a href="https://x.com/piyushgarg_dev" target="_blank" rel="noreferrer">
+						<span>Teacher</span>
+						<strong>Piyush Garg</strong>
+					</a>
+					<a href="https://x.com/Hiteshdotcom" target="_blank" rel="noreferrer">
+						<span>Teacher</span>
+						<strong>Hitesh Choudhary</strong>
+					</a>
+				</div>
+			</section>
+
+			<footer class="landing-footer">
+				Made with ❤️ by
+				<a href="https://x.com/subhrangsu_dev" target="_blank" rel="noreferrer">Subhrangsu</a>
+			</footer>
+		</main>
+	</body>
+</html>

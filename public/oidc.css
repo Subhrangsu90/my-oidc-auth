@@ -17,7 +17,7 @@
 	--danger-bg: rgba(248, 113, 113, 0.1);
 	--success: #86efac;
 	--success-bg: rgba(134, 239, 172, 0.1);
-	--radius: 8px;
+	--radius: 2px;
 	--shadow: 0 30px 90px rgba(0, 0, 0, 0.46);
 	font-family:
 		Inter,
@@ -82,16 +82,21 @@ a:hover {
 .brand-mark {
 	width: 38px;
 	height: 38px;
-	border: 1px solid rgba(255, 255, 255, 0.14);
 	border-radius: var(--radius);
 	display: grid;
 	place-items: center;
-	background: linear-gradient(180deg, #232323, #151515);
 	color: #f5f5f5;
 	font-weight: 900;
 	font-size: 0.95rem;
 	letter-spacing: 0;
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+}
+
+.brand-logo {
+	width: 100%;
+	height: 100%;
+	display: block;
+	border-radius: calc(var(--radius) - 2px);
 }
 
 .brand-text {
@@ -114,7 +119,7 @@ h1 {
 	font-size: clamp(1.55rem, 5.5vw, 1.9rem);
 	line-height: 1.12;
 	letter-spacing: 0;
-	font-weight: 760;
+	font-weight: 700;
 }
 
 p {
@@ -216,16 +221,17 @@ button,
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 45px;
+	min-height: 35px;
 	border: 1px solid rgba(255, 255, 255, 0.9);
 	border-radius: var(--radius);
 	background: linear-gradient(180deg, #fafafa, #d9d9d9);
 	color: var(--accent-text);
 	cursor: pointer;
 	font: inherit;
-	font-weight: 760;
+	font-size: 14px;
+	font-weight: 700;
 	margin-top: 4px;
-	padding: 0 16px;
+	padding: 0 14px;
 	text-decoration: none;
 	transition:
 		transform 160ms ease,
@@ -347,6 +353,27 @@ button:disabled {
 	margin-top: 28px;
 }
 
+.site-header,
+.site-footer {
+	width: min(100%, 940px);
+	margin: 0 auto;
+}
+
+.site-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+}
+
+.site-footer {
+	padding: 12px 16px 18px;
+	color: var(--muted);
+	font-size: 0.86rem;
+	text-align: center;
+}
+
 @media (max-width: 520px) {
 	body {
 		padding: 18px 12px;
@@ -378,5 +405,270 @@ button:disabled {
 
 	.button {
 		width: 100%;
+	}
+}
+
+/* Landing page blocks */
+.landing-card {
+	width: min(100%, 920px);
+}
+
+.landing-card .subtitle {
+	margin-bottom: 18px;
+}
+
+.landing-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 0 0 18px;
+}
+
+.landing-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	margin-top: 6px;
+}
+
+.landing-section {
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: var(--radius);
+	background: rgba(255, 255, 255, 0.02);
+	padding: 13px 14px;
+}
+
+.landing-section h2 {
+	font-size: 0.96rem;
+	margin: 0 0 8px;
+}
+
+.landing-section p,
+.landing-section li {
+	color: var(--muted);
+	font-size: 0.9rem;
+	line-height: 1.55;
+}
+
+.landing-section ul,
+.landing-section ol {
+	margin: 0;
+	padding-left: 18px;
+}
+
+.landing-section p {
+	margin: 0;
+}
+
+@media (max-width: 760px) {
+	.landing-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Full-width landing layout */
+body.landing-page {
+	display: block;
+	padding: 0;
+}
+
+.landing-main {
+	width: min(100%, 940px);
+	margin: 0 auto;
+	padding: 22px 16px 42px;
+}
+
+.landing-nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+
+.landing-nav .brand {
+	margin-bottom: 0;
+}
+
+.landing-nav-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.landing-nav-links a {
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+.landing-nav-links .nav-icon-link {
+	display: inline-grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	/* border: 1px solid rgba(255, 255, 255, 0.1); */
+	/* border-radius: var(--radius); */
+	color: var(--text);
+}
+
+.landing-nav-links .nav-icon-link:hover {
+	/* border-color: rgba(255, 255, 255, 0.22); */
+	/* background: rgba(255, 255, 255, 0.055); */
+	text-decoration: none;
+}
+
+.nav-icon-link svg {
+	width: 17px;
+	height: 17px;
+	fill: currentColor;
+}
+
+.landing-hero {
+	padding: 14px 0 10px;
+}
+
+.landing-main .landing-section {
+	margin-top: 14px;
+}
+
+.landing-main .landing-section p {
+	margin-bottom: 10px;
+}
+
+.section-heading-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 14px;
+}
+
+.compact-button {
+	min-height: 38px;
+	white-space: nowrap;
+}
+
+.metadata-visual {
+	display: grid;
+	gap: 12px;
+	margin-top: 14px;
+}
+
+.metadata-node {
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	border-radius: var(--radius);
+	background: rgba(0, 0, 0, 0.18);
+	padding: 12px;
+}
+
+.metadata-node span {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--subtle);
+	font-size: 0.76rem;
+	font-weight: 800;
+	letter-spacing: 0;
+	text-transform: uppercase;
+}
+
+.metadata-node strong {
+	display: block;
+	color: var(--text);
+	font-size: 0.92rem;
+	font-weight: 720;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.metadata-node-primary {
+	background: rgba(255, 255, 255, 0.055);
+	border-color: rgba(255, 255, 255, 0.16);
+	position: relative;
+}
+
+.metadata-node-primary::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: -13px;
+	width: 1px;
+	height: 12px;
+	background: rgba(255, 255, 255, 0.18);
+}
+
+.metadata-branch {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.profile-links {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px;
+	margin-top: 14px;
+}
+
+.profile-links a {
+	display: grid;
+	gap: 4px;
+	min-height: 74px;
+	padding: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	border-radius: var(--radius);
+	background: rgba(0, 0, 0, 0.18);
+	text-decoration: none;
+}
+
+.profile-links a:hover {
+	border-color: rgba(255, 255, 255, 0.2);
+	background: rgba(255, 255, 255, 0.045);
+	text-decoration: none;
+}
+
+.profile-links span {
+	color: var(--subtle);
+	font-size: 0.76rem;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.profile-links strong {
+	color: var(--text);
+	font-size: 0.92rem;
+	line-height: 1.35;
+}
+
+.landing-footer {
+	margin-top: 20px;
+	padding-top: 14px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+@media (max-width: 760px) {
+	.landing-nav {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.section-heading-row {
+		display: grid;
+	}
+
+	.compact-button {
+		width: 100%;
+	}
+
+	.metadata-branch {
+		grid-template-columns: 1fr;
+	}
+
+	.profile-links {
+		grid-template-columns: 1fr;
+	}
+
+	.metadata-node-primary::after {
+		left: 18px;
 	}
 }

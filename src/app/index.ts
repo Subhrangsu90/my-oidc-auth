@@ -14,9 +14,7 @@ export function createOIDCAuthServer() {
 
 	// Routes
 	app.get("/", (req, res) => {
-		res.json({
-			message: "Welcome to the OIDC Authentication Server!",
-		});
+		return res.sendFile(path.resolve("public", "index.html"));
 	});
 
 	app.get("/health", (req, res) => {

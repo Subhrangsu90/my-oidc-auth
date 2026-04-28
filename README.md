@@ -4,6 +4,12 @@ Minimal OpenID Connect provider built with Express, TypeScript, PostgreSQL, and 
 
 This provider currently supports the OpenID Connect Authorization Code flow and issues RS256-signed JWTs.
 
+## Full Client Integration (Step-by-step)
+
+For complete start-to-end client onboarding (register app -> sign up -> login -> token exchange -> refresh -> userinfo -> logout -> revoke), see:
+
+- [`CLIENT_INTEGRATION_GUIDE.md`](./CLIENT_INTEGRATION_GUIDE.md)
+
 ## Provider URL
 
 Production issuer/discovery URL:

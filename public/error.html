@@ -3,13 +3,24 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Authorization Error | browcodex Auth</title>
+		<title>Authorization Error | brewcodex Auth</title>
 		<link rel="stylesheet" href="/oidc.css" />
 	</head>
 	<body>
+		<header class="site-header">
+			<div class="brand" aria-label="brewcodex Auth">
+				<div class="brand-mark">
+					<img class="brand-logo" src="/brand-logo.svg" alt="brewcodex Auth logo" />
+				</div>
+				<div class="brand-text">
+					<strong>brewcodex Auth</strong>
+					<span>OAuth 2.0 + OpenID Connect</span>
+				</div>
+			</div>
+		</header>
 		<main>
 			<section class="error-card" aria-labelledby="error-title">
-				<div class="eyebrow">browcodex Auth</div>
+				<div class="eyebrow">Authorization Failed</div>
 				<h1 id="error-title">Authorization Error</h1>
 				<p id="error-summary">
 					This authorization request could not be completed with the information provided.
@@ -28,6 +39,7 @@
 				</div>
 			</section>
 		</main>
+		<footer class="site-footer">Made with ❤️ by Subhrangsu</footer>
 
 		<script>
 			const params = new URLSearchParams(window.location.search);
@@ -35,7 +47,7 @@
 			const message = params.get("message") || "Something went wrong while validating the request.";
 			const status = params.get("status") || "400";
 
-			document.title = `${title} | browcodex Auth`;
+			document.title = `${title} | brewcodex Auth`;
 			document.querySelector("#error-title").textContent = title;
 			document.querySelector("#error-status").textContent = `Status ${status}`;
 			document.querySelector("#error-message").textContent = message;
