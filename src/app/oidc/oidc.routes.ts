@@ -4,7 +4,12 @@ import jose from "node-jose";
 import { PRIVATE_KEY, PUBLIC_KEY } from "../utils/cert";
 import path from "node:path";
 import { db } from "../../db";
-import { applicationsTable, authorizationCodesTable, usersTable } from "../../db/schema";
+import {
+	applicationsTable,
+	authorizationCodesTable,
+	refreshTokensTable,
+	usersTable,
+} from "../../db/schema";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import crypto from "node:crypto";
 import { JWTClaims } from "../utils/user-token";
@@ -13,7 +18,68 @@ import JWT from "jsonwebtoken";
 export const oidcRoute: Router = express.Router();
 
 const SIGNING_KEY_ID = process.env.OIDC_KEY_ID || "oidc-signing-key-1";
-const TOKEN_TTL_SECONDS = 3600;
+const ACCESS_TOKEN_TTL_SECONDS = 3600;
+const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const REFRESH_TOKEN_COOKIE_NAME = "oidc_refresh_token";
+
+function shouldUseSecureCookies(req: express.Request) {
+	if (typeof process.env.COOKIE_SECURE === "string") {
+		return process.env.COOKIE_SECURE === "true";
+	}
+
+	const forwardedProto = req.get("x-forwarded-proto");
+	return req.secure || forwardedProto === "https" || process.env.NODE_ENV === "production";
+}
+
+function setRefreshTokenCookie(res: express.Response, req: express.Request, refreshToken: string) {
+	res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
+		httpOnly: true,
+		secure: shouldUseSecureCookies(req),
+		sameSite: "lax",
+		path: "/",
+		maxAge: REFRESH_TOKEN_TTL_SECONDS * 1000,
+	});
+}
+
+function clearRefreshTokenCookie(res: express.Response, req: express.Request) {
+	res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
+		httpOnly: true,
+		secure: shouldUseSecureCookies(req),
+		sameSite: "lax",
+		path: "/",
+	});
+}
+
+function getRefreshTokenFromRequest(req: express.Request, bodyToken: unknown) {
+	const cookieRefreshToken =
+		typeof req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] === "string"
+			? req.cookies[REFRESH_TOKEN_COOKIE_NAME]
+			: null;
+	const refreshTokenFromBody = typeof bodyToken === "string" ? bodyToken : null;
+	return refreshTokenFromBody ?? cookieRefreshToken;
+}
+
+async function revokeRefreshTokenByValue(token: string, replacementToken?: string) {
+	const [currentRefreshToken] = await db
+		.select()
+		.from(refreshTokensTable)
+		.where(and(eq(refreshTokensTable.token, token), isNull(refreshTokensTable.revokedAt)))
+		.limit(1);
+
+	if (!currentRefreshToken) {
+		return null;
+	}
+
+	await db
+		.update(refreshTokensTable)
+		.set({
+			revokedAt: new Date(),
+			replacedByToken: replacementToken ?? null,
+		})
+		.where(eq(refreshTokensTable.id, currentRefreshToken.id));
+
+	return currentRefreshToken;
+}
 
 function createRandomToken(bytes = 32) {
 	return crypto.randomBytes(bytes).toString("base64url");
@@ -48,7 +114,7 @@ function createUserJWT(user: typeof usersTable.$inferSelect, issuer: string, aud
 		email: user.email,
 		email_verified: Boolean(user.emailVerified),
 		iat: now,
-		exp: now + TOKEN_TTL_SECONDS,
+		exp: now + ACCESS_TOKEN_TTL_SECONDS,
 		given_name: user.firstName ?? "",
 		family_name: user.lastName ?? undefined,
 		name: [user.firstName, user.lastName].filter(Boolean).join(" "),
@@ -59,6 +125,23 @@ function createUserJWT(user: typeof usersTable.$inferSelect, issuer: string, aud
 		algorithm: "RS256",
 		keyid: SIGNING_KEY_ID,
 	});
+}
+
+async function issueRefreshToken(applicationId: string, userId: string) {
+	const refreshToken = `rt_${createRandomToken(48)}`;
+	const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000);
+
+	await db.insert(refreshTokensTable).values({
+		token: refreshToken,
+		applicationId,
+		userId,
+		expiresAt,
+	});
+
+	return {
+		refreshToken,
+		expiresAt,
+	};
 }
 
 function logRouteError(context: string, error: unknown) {
@@ -136,11 +219,13 @@ function getDiscoveryMetadata(req: express.Request) {
 		issuer: ISSUER,
 		authorization_endpoint: `${ISSUER}/auth/authenticate`,
 		token_endpoint: `${ISSUER}/auth/token`,
+		revocation_endpoint: `${ISSUER}/oauth/revoke`,
+		end_session_endpoint: `${ISSUER}/auth/logout`,
 		userinfo_endpoint: `${ISSUER}/user/userinfo`,
 		jwks_uri: `${ISSUER}/.well-known/jwks.json`,
 		response_types_supported: ["code"],
 		response_modes_supported: ["query"],
-		grant_types_supported: ["authorization_code"],
+		grant_types_supported: ["authorization_code", "refresh_token"],
 		subject_types_supported: ["public"],
 		id_token_signing_alg_values_supported: ["RS256"],
 		token_endpoint_auth_methods_supported: ["client_secret_post"],
@@ -376,16 +461,11 @@ oidcRoute.post("/auth/authenticate/sign-in", async (req, res) => {
 
 oidcRoute.post("/auth/token", async (req, res) => {
 	try {
-		const { grant_type, code, redirect_uri, client_id, client_secret } = req.body;
+		const { grant_type, code, redirect_uri, client_id, client_secret, refresh_token } = req.body;
 
-		if (grant_type !== "authorization_code") {
-			res.status(400).json({ message: "Only authorization_code grant_type is supported." });
-			return;
-		}
-
-		if (!code || !redirect_uri || !client_id || !client_secret) {
+		if (!client_id || !client_secret) {
 			res.status(400).json({
-				message: "code, redirect_uri, client_id, and client_secret are required.",
+				message: "client_id and client_secret are required.",
 			});
 			return;
 		}
@@ -397,54 +477,198 @@ oidcRoute.post("/auth/token", async (req, res) => {
 			return;
 		}
 
-		const [authorizationCode] = await db
-			.select()
-			.from(authorizationCodesTable)
-			.where(
-				and(
-					eq(authorizationCodesTable.code, code),
-					eq(authorizationCodesTable.applicationId, application.id),
-					eq(authorizationCodesTable.redirectURI, redirect_uri),
-					gt(authorizationCodesTable.expiresAt, new Date()),
-					isNull(authorizationCodesTable.usedAt)
+		if (grant_type === "authorization_code") {
+			if (!code || !redirect_uri) {
+				res.status(400).json({
+					message:
+						"code, redirect_uri, client_id, and client_secret are required for authorization_code.",
+				});
+				return;
+			}
+
+			const [authorizationCode] = await db
+				.select()
+				.from(authorizationCodesTable)
+				.where(
+					and(
+						eq(authorizationCodesTable.code, code),
+						eq(authorizationCodesTable.applicationId, application.id),
+						eq(authorizationCodesTable.redirectURI, redirect_uri),
+						gt(authorizationCodesTable.expiresAt, new Date()),
+						isNull(authorizationCodesTable.usedAt)
+					)
 				)
-			)
-			.limit(1);
+				.limit(1);
 
-		if (!authorizationCode) {
-			res.status(400).json({ message: "Invalid, expired, or already used authorization code." });
+			if (!authorizationCode) {
+				res.status(400).json({ message: "Invalid, expired, or already used authorization code." });
+				return;
+			}
+
+			const [user] = await db
+				.select()
+				.from(usersTable)
+				.where(eq(usersTable.id, authorizationCode.userId))
+				.limit(1);
+
+			if (!user) {
+				res.status(404).json({ message: "User not found." });
+				return;
+			}
+
+			const token = createUserJWT(user, getIssuer(req), application.clientId);
+			const { refreshToken } = await issueRefreshToken(application.id, user.id);
+			setRefreshTokenCookie(res, req, refreshToken);
+
+			await db
+				.update(authorizationCodesTable)
+				.set({ usedAt: new Date() })
+				.where(eq(authorizationCodesTable.id, authorizationCode.id));
+
+			res.json({
+				token_type: "Bearer",
+				expires_in: ACCESS_TOKEN_TTL_SECONDS,
+				access_token: token,
+				id_token: token,
+			});
 			return;
 		}
 
-		const [user] = await db
-			.select()
-			.from(usersTable)
-			.where(eq(usersTable.id, authorizationCode.userId))
-			.limit(1);
+		if (grant_type === "refresh_token") {
+			const providedRefreshToken = getRefreshTokenFromRequest(req, refresh_token);
 
-		if (!user) {
-			res.status(404).json({ message: "User not found." });
+			if (!providedRefreshToken) {
+				res.status(400).json({
+					message:
+						"Refresh token is required in cookie or request body, along with client credentials.",
+				});
+				return;
+			}
+
+			const [currentRefreshToken] = await db
+				.select()
+				.from(refreshTokensTable)
+				.where(
+					and(
+						eq(refreshTokensTable.token, providedRefreshToken),
+						eq(refreshTokensTable.applicationId, application.id),
+						gt(refreshTokensTable.expiresAt, new Date()),
+						isNull(refreshTokensTable.revokedAt)
+					)
+				)
+				.limit(1);
+
+			if (!currentRefreshToken) {
+				res.status(400).json({ message: "Invalid or expired refresh token." });
+				return;
+			}
+
+			const [user] = await db
+				.select()
+				.from(usersTable)
+				.where(eq(usersTable.id, currentRefreshToken.userId))
+				.limit(1);
+
+			if (!user) {
+				res.status(404).json({ message: "User not found." });
+				return;
+			}
+
+			const token = createUserJWT(user, getIssuer(req), application.clientId);
+			const { refreshToken: nextRefreshToken } = await issueRefreshToken(application.id, user.id);
+			setRefreshTokenCookie(res, req, nextRefreshToken);
+
+			await revokeRefreshTokenByValue(currentRefreshToken.token, nextRefreshToken);
+
+			res.json({
+				token_type: "Bearer",
+				expires_in: ACCESS_TOKEN_TTL_SECONDS,
+				access_token: token,
+				id_token: token,
+			});
 			return;
 		}
 
-		const token = createUserJWT(user, getIssuer(req), application.clientId);
-
-		await db
-			.update(authorizationCodesTable)
-			.set({ usedAt: new Date() })
-			.where(eq(authorizationCodesTable.id, authorizationCode.id));
-
-		res.json({
-			token_type: "Bearer",
-			expires_in: TOKEN_TTL_SECONDS,
-			access_token: token,
-			id_token: token,
+		res.status(400).json({
+			message: "Only authorization_code and refresh_token grant_type values are supported.",
 		});
 	} catch (error) {
 		logRouteError("Token exchange failed", error);
 
 		res.status(500).json({
 			message: "Unable to issue token right now. Please try again later.",
+		});
+	}
+});
+
+oidcRoute.post("/oauth/revoke", async (req, res) => {
+	try {
+		const { token, token_type_hint, client_id, client_secret } = req.body;
+
+		if (!client_id || !client_secret) {
+			res.status(400).json({
+				message: "client_id and client_secret are required.",
+			});
+			return;
+		}
+
+		const application = await findApplicationByClientId(client_id);
+
+		if (!application || application.clientSecret !== client_secret) {
+			res.status(401).json({ message: "Invalid client credentials." });
+			return;
+		}
+
+		if (token_type_hint && token_type_hint !== "refresh_token") {
+			res.status(400).json({
+				message: "Only refresh_token revocation is supported.",
+			});
+			return;
+		}
+
+		const providedToken = getRefreshTokenFromRequest(req, token);
+
+		if (providedToken) {
+			await db
+				.update(refreshTokensTable)
+				.set({ revokedAt: new Date() })
+				.where(
+					and(
+						eq(refreshTokensTable.token, providedToken),
+						eq(refreshTokensTable.applicationId, application.id),
+						isNull(refreshTokensTable.revokedAt)
+					)
+				);
+		}
+
+		clearRefreshTokenCookie(res, req);
+		res.status(200).send();
+	} catch (error) {
+		logRouteError("Token revocation failed", error);
+		res.status(500).json({
+			message: "Unable to revoke token right now. Please try again later.",
+		});
+	}
+});
+
+oidcRoute.post("/auth/logout", async (req, res) => {
+	try {
+		const refreshToken = getRefreshTokenFromRequest(req, req.body?.refresh_token);
+
+		if (refreshToken) {
+			await revokeRefreshTokenByValue(refreshToken);
+		}
+
+		clearRefreshTokenCookie(res, req);
+
+		res.status(200).json({
+			ok: true,
+			message: "Logged out successfully.",
+		});
+	} catch (error) {
+		logRouteError("Logout failed", error);
+		res.status(500).json({
+			message: "Unable to logout right now. Please try again later.",
 		});
 	}
 });

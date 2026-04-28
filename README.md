@@ -32,7 +32,7 @@ Important endpoints:
 Supported values:
 
 - `response_type`: `code`
-- `grant_type`: `authorization_code`
+- `grant_type`: `authorization_code`, `refresh_token`
 - `scope`: `openid profile email`
 - signing algorithm: `RS256`
 - token lifetime: `3600` seconds
@@ -128,7 +128,23 @@ Successful response:
 	"token_type": "Bearer",
 	"expires_in": 3600,
 	"access_token": "eyJ...",
-	"id_token": "eyJ..."
+	"id_token": "eyJ...",
+	"refresh_token": "rt_..."
+}
+```
+
+### Refresh Token Exchange
+
+```http
+POST /auth/token
+Host: autho.brewcodex.online
+Content-Type: application/json
+
+{
+  "grant_type": "refresh_token",
+  "refresh_token": "rt_...",
+  "client_id": "YOUR_CLIENT_ID",
+  "client_secret": "YOUR_CLIENT_SECRET"
 }
 ```
 

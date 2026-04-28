@@ -1,11 +1,13 @@
 import express from "express";
 import path from "node:path";
+import cookieParser from "cookie-parser";
 import { oidcRoute } from "./oidc/oidc.routes";
 
 export function createOIDCAuthServer() {
 	const app = express();
 	app.use(express.json());
 	app.use(express.urlencoded({ extended: false }));
+	app.use(cookieParser());
 	app.use(express.static(path.resolve("public")));
 
 	// Middleware

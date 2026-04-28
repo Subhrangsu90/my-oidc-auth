@@ -49,3 +49,19 @@ export const authorizationCodesTable = pgTable("authorization_codes", {
 	usedAt: timestamp("used_at"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const refreshTokensTable = pgTable("refresh_tokens", {
+	id: uuid("id").primaryKey().defaultRandom(),
+
+	token: varchar("token", { length: 128 }).notNull().unique(),
+	applicationId: uuid("application_id")
+		.notNull()
+		.references(() => applicationsTable.id),
+	userId: uuid("user_id")
+		.notNull()
+		.references(() => usersTable.id),
+	expiresAt: timestamp("expires_at").notNull(),
+	revokedAt: timestamp("revoked_at"),
+	replacedByToken: varchar("replaced_by_token", { length: 128 }),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+});
