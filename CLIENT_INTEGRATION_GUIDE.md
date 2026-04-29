@@ -85,16 +85,16 @@ Call token endpoint from your backend (recommended), and include cookies.
 
 ```js
 const tokenResponse = await fetch("http://localhost:8000/auth/token", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  credentials: "include",
-  body: JSON.stringify({
-    grant_type: "authorization_code",
-    code: authCodeFromCallback,
-    redirect_uri: "http://localhost:3000/auth/callback",
-    client_id: process.env.OIDC_CLIENT_ID,
-    client_secret: process.env.OIDC_CLIENT_SECRET
-  })
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+	credentials: "include",
+	body: JSON.stringify({
+		grant_type: "authorization_code",
+		code: authCodeFromCallback,
+		redirect_uri: "http://localhost:3000/auth/callback",
+		client_id: process.env.OIDC_CLIENT_ID,
+		client_secret: process.env.OIDC_CLIENT_SECRET,
+	}),
 });
 
 const tokens = await tokenResponse.json();
@@ -104,10 +104,10 @@ Response:
 
 ```json
 {
-  "token_type": "Bearer",
-  "expires_in": 3600,
-  "access_token": "eyJ...",
-  "id_token": "eyJ..."
+	"token_type": "Bearer",
+	"expires_in": 3600,
+	"access_token": "eyJ...",
+	"id_token": "eyJ..."
 }
 ```
 
@@ -128,16 +128,16 @@ Minimal helper:
 
 ```js
 async function ensureValidAccessToken(session) {
-  if (session.accessToken && Date.now() < session.accessTokenExpiresAt) {
-    return session.accessToken;
-  }
+	if (session.accessToken && Date.now() < session.accessTokenExpiresAt) {
+		return session.accessToken;
+	}
 
-  const refreshed = await refreshAccessToken();
-  if (!refreshed) return null;
+	const refreshed = await refreshAccessToken();
+	if (!refreshed) return null;
 
-  session.accessToken = refreshed.access_token;
-  session.accessTokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
-  return session.accessToken;
+	session.accessToken = refreshed.access_token;
+	session.accessTokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
+	return session.accessToken;
 }
 ```
 
@@ -145,9 +145,9 @@ async function ensureValidAccessToken(session) {
 
 ```js
 const userInfoResponse = await fetch("http://localhost:8000/user/userinfo", {
-  headers: {
-    Authorization: `Bearer ${accessToken}`
-  }
+	headers: {
+		Authorization: `Bearer ${accessToken}`,
+	},
 });
 
 const user = await userInfoResponse.json();
@@ -157,13 +157,13 @@ Example response:
 
 ```json
 {
-  "sub": "user-id",
-  "email": "amit@example.com",
-  "email_verified": false,
-  "given_name": "Amit",
-  "family_name": "Sharma",
-  "name": "Amit Sharma",
-  "picture": null
+	"sub": "user-id",
+	"email": "amit@example.com",
+	"email_verified": false,
+	"given_name": "Amit",
+	"family_name": "Sharma",
+	"name": "Amit Sharma",
+	"picture": null
 }
 ```
 
@@ -191,13 +191,13 @@ const issuer = "http://localhost:8000";
 const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
 
 async function verifyToken(token, expectedAudience) {
-  const { payload } = await jwtVerify(token, jwks, {
-    issuer,
-    audience: expectedAudience,
-    algorithms: ["RS256"]
-  });
+	const { payload } = await jwtVerify(token, jwks, {
+		issuer,
+		audience: expectedAudience,
+		algorithms: ["RS256"],
+	});
 
-  return payload;
+	return payload;
 }
 
 // Example:
@@ -223,19 +223,19 @@ When access token expires, call:
 
 ```js
 async function refreshAccessToken() {
-  const response = await fetch("http://localhost:8000/auth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({
-      grant_type: "refresh_token",
-      client_id: process.env.OIDC_CLIENT_ID,
-      client_secret: process.env.OIDC_CLIENT_SECRET
-    })
-  });
+	const response = await fetch("http://localhost:8000/auth/token", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			grant_type: "refresh_token",
+			client_id: process.env.OIDC_CLIENT_ID,
+			client_secret: process.env.OIDC_CLIENT_SECRET,
+		}),
+	});
 
-  if (!response.ok) return null;
-  return response.json();
+	if (!response.ok) return null;
+	return response.json();
 }
 ```
 
@@ -252,9 +252,9 @@ Call provider logout endpoint:
 
 ```js
 await fetch("http://localhost:8000/auth/logout", {
-  method: "POST",
-  credentials: "include",
-  headers: { "Content-Type": "application/json" }
+	method: "POST",
+	credentials: "include",
+	headers: { "Content-Type": "application/json" },
 });
 ```
 
@@ -271,14 +271,14 @@ Use revoke when disconnecting app or invalidating token explicitly.
 
 ```js
 await fetch("http://localhost:8000/oauth/revoke", {
-  method: "POST",
-  credentials: "include",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    client_id: process.env.OIDC_CLIENT_ID,
-    client_secret: process.env.OIDC_CLIENT_SECRET,
-    token_type_hint: "refresh_token"
-  })
+	method: "POST",
+	credentials: "include",
+	headers: { "Content-Type": "application/json" },
+	body: JSON.stringify({
+		client_id: process.env.OIDC_CLIENT_ID,
+		client_secret: process.env.OIDC_CLIENT_SECRET,
+		token_type_hint: "refresh_token",
+	}),
 });
 ```
 
@@ -304,88 +304,88 @@ const redirectUri = "http://localhost:3000/auth/callback";
 
 app.use(express.json());
 app.use(
-  session({
-    secret: "replace-me",
-    resave: false,
-    saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: "lax", secure: false }
-  })
+	session({
+		secret: "replace-me",
+		resave: false,
+		saveUninitialized: false,
+		cookie: { httpOnly: true, sameSite: "lax", secure: false },
+	})
 );
 
 app.get("/login", (req, res) => {
-  const state = crypto.randomBytes(16).toString("hex");
-  req.session.oidcState = state;
-  const u = new URL(`${issuer}/auth/authenticate`);
-  u.searchParams.set("client_id", clientId);
-  u.searchParams.set("redirect_uri", redirectUri);
-  u.searchParams.set("response_type", "code");
-  u.searchParams.set("scope", "openid profile email");
-  u.searchParams.set("state", state);
-  res.redirect(u.toString());
+	const state = crypto.randomBytes(16).toString("hex");
+	req.session.oidcState = state;
+	const u = new URL(`${issuer}/auth/authenticate`);
+	u.searchParams.set("client_id", clientId);
+	u.searchParams.set("redirect_uri", redirectUri);
+	u.searchParams.set("response_type", "code");
+	u.searchParams.set("scope", "openid profile email");
+	u.searchParams.set("state", state);
+	res.redirect(u.toString());
 });
 
 app.get("/auth/callback", async (req, res) => {
-  const { code, state } = req.query;
-  if (!code || state !== req.session.oidcState) {
-    return res.status(400).send("Invalid callback");
-  }
-  delete req.session.oidcState;
+	const { code, state } = req.query;
+	if (!code || state !== req.session.oidcState) {
+		return res.status(400).send("Invalid callback");
+	}
+	delete req.session.oidcState;
 
-  const tokenResp = await fetch(`${issuer}/auth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      client_id: clientId,
-      client_secret: clientSecret
-    })
-  });
-  const tokens = await tokenResp.json();
-  if (!tokenResp.ok) return res.status(tokenResp.status).json(tokens);
+	const tokenResp = await fetch(`${issuer}/auth/token`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({
+			grant_type: "authorization_code",
+			code,
+			redirect_uri: redirectUri,
+			client_id: clientId,
+			client_secret: clientSecret,
+		}),
+	});
+	const tokens = await tokenResp.json();
+	if (!tokenResp.ok) return res.status(tokenResp.status).json(tokens);
 
-  req.session.accessToken = tokens.access_token;
-  req.session.accessTokenExpiresAt = Date.now() + tokens.expires_in * 1000;
-  res.redirect("/me");
+	req.session.accessToken = tokens.access_token;
+	req.session.accessTokenExpiresAt = Date.now() + tokens.expires_in * 1000;
+	res.redirect("/me");
 });
 
 app.get("/me", async (req, res) => {
-  let accessToken = req.session.accessToken;
-  if (!accessToken || Date.now() >= req.session.accessTokenExpiresAt) {
-    const refreshResp = await fetch(`${issuer}/auth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        grant_type: "refresh_token",
-        client_id: clientId,
-        client_secret: clientSecret
-      })
-    });
-    if (!refreshResp.ok) return res.redirect("/login");
-    const refreshed = await refreshResp.json();
-    accessToken = refreshed.access_token;
-    req.session.accessToken = accessToken;
-    req.session.accessTokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
-  }
+	let accessToken = req.session.accessToken;
+	if (!accessToken || Date.now() >= req.session.accessTokenExpiresAt) {
+		const refreshResp = await fetch(`${issuer}/auth/token`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({
+				grant_type: "refresh_token",
+				client_id: clientId,
+				client_secret: clientSecret,
+			}),
+		});
+		if (!refreshResp.ok) return res.redirect("/login");
+		const refreshed = await refreshResp.json();
+		accessToken = refreshed.access_token;
+		req.session.accessToken = accessToken;
+		req.session.accessTokenExpiresAt = Date.now() + refreshed.expires_in * 1000;
+	}
 
-  const meResp = await fetch(`${issuer}/user/userinfo`, {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  });
-  const me = await meResp.json();
-  if (!meResp.ok) return res.status(meResp.status).json(me);
-  res.json(me);
+	const meResp = await fetch(`${issuer}/user/userinfo`, {
+		headers: { Authorization: `Bearer ${accessToken}` },
+	});
+	const me = await meResp.json();
+	if (!meResp.ok) return res.status(meResp.status).json(me);
+	res.json(me);
 });
 
 app.post("/logout", async (req, res) => {
-  await fetch(`${issuer}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" }
-  });
-  req.session.destroy(() => res.status(204).end());
+	await fetch(`${issuer}/auth/logout`, {
+		method: "POST",
+		credentials: "include",
+		headers: { "Content-Type": "application/json" },
+	});
+	req.session.destroy(() => res.status(204).end());
 });
 
 app.listen(3000, () => console.log("Client app at http://localhost:3000"));

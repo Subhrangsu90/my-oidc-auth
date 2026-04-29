@@ -44,7 +44,7 @@ Browser
   v
 Client Backend
   |
-  | Redirect to /auth/authorize
+  | Redirect to /auth/authenticate
   v
 my-oidc-auth
   |
@@ -183,7 +183,7 @@ function createAuthLayer(config, userStore) {
 		const state = crypto.randomBytes(16).toString("hex");
 		req.session.oidcState = state;
 
-		const url = new URL(`${config.issuer}/auth/authorize`);
+		const url = new URL(`${config.issuer}/auth/authenticate`);
 		url.searchParams.set("client_id", config.clientId);
 		url.searchParams.set("redirect_uri", config.redirectUri);
 		url.searchParams.set("response_type", "code");
@@ -599,7 +599,7 @@ Each website can have different app roles and data, but the login identity is sh
 Your client backend talks to these `my-oidc-auth` endpoints:
 
 ```text
-GET  https://autho.brewcodex.online/auth/authorize
+GET  https://autho.brewcodex.online/auth/authenticate
 POST https://autho.brewcodex.online/auth/token
 GET  https://autho.brewcodex.online/user/userinfo
 GET  https://autho.brewcodex.online/auth/jwks.json

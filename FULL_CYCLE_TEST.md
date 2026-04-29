@@ -108,13 +108,13 @@ Expected:
 Open this authorization URL in your browser:
 
 ```text
-http://localhost:8000/o/auth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=openid%20profile%20email&state=test-state-123
+http://localhost:8000/o/auth/authenticate?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=openid%20profile%20email&state=test-state-123
 ```
 
 Example:
 
 ```text
-http://localhost:8000/o/auth/authorize?client_id=client_xxx&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&response_type=code&scope=openid%20profile%20email&state=test-state-123
+http://localhost:8000/o/auth/authenticate?client_id=client_xxx&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&response_type=code&scope=openid%20profile%20email&state=test-state-123
 ```
 
 Sign in with the account you created.

@@ -241,7 +241,7 @@ app.get("/login", (req, res) => {
 	const state = crypto.randomBytes(16).toString("hex");
 	req.session.oidcState = state;
 
-	const url = new URL(`${issuer}/auth/authorize`);
+	const url = new URL(`${issuer}/auth/authenticate`);
 	url.searchParams.set("client_id", clientId);
 	url.searchParams.set("redirect_uri", redirectUri);
 	url.searchParams.set("response_type", "code");
@@ -400,7 +400,7 @@ app.get("/auth/login", (req, res) => {
 	const state = crypto.randomBytes(16).toString("hex");
 	req.session.oidcState = state;
 
-	const url = new URL(`${issuer}/auth/authorize`);
+	const url = new URL(`${issuer}/auth/authenticate`);
 	url.searchParams.set("client_id", clientId);
 	url.searchParams.set("redirect_uri", redirectUri);
 	url.searchParams.set("response_type", "code");

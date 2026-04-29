@@ -82,7 +82,7 @@
 
 				<p class="helper-text">
 					Already have an account?
-					<a id="sign-in-link" href="/auth/authorize">Sign in</a>
+					<a id="sign-in-link" href="/auth/authenticate">Sign in</a>
 				</p>
 			</section>
 		</main>
@@ -110,7 +110,7 @@
 			}
 
 			if (authorizationParams.toString()) {
-				signInLink.href = `/auth/authorize?${authorizationParams.toString()}`;
+				signInLink.href = `/auth/authenticate?${authorizationParams.toString()}`;
 			}
 
 			function setStatus(message, type) {
@@ -159,7 +159,7 @@
 				statusMessage.className = "status";
 
 				try {
-					const response = await fetch("/auth/authorize/sign-up", {
+					const response = await fetch("/auth/authenticate/sign-up", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
@@ -184,8 +184,8 @@
 					setStatus("Account created successfully. Redirecting you to sign in.", "success");
 
 					const redirectUrl = authorizationParams.toString()
-						? `/auth/authorize?${authorizationParams.toString()}`
-						: "/auth/authorize";
+						? `/auth/authenticate?${authorizationParams.toString()}`
+						: "/auth/authenticate";
 
 					window.setTimeout(() => {
 						window.location.assign(redirectUrl);
