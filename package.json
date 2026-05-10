@@ -1,7 +1,7 @@
 {
 	"name": "my-oidc-auth",
 	"version": "1.0.0",
-	"description": "",
+	"description": "brewAuth 1.0 - A custom-built OpenID Connect and OAuth 2.0 Provider supporting authorization code flow, discovery, and JWKS endpoints.",
 	"main": "index.js",
 	"scripts": {
 		"build": "tsc",
@@ -11,8 +11,15 @@
 		"db:studio": "drizzle-kit studio",
 		"dev": "tsc-watch --onSuccess \"node dist/index\""
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"oidc",
+		"oauth2",
+		"openid-connect",
+		"auth-server",
+		"identity-provider",
+		"brewauth"
+	],
+	"author": "Subhrangsu",
 	"license": "ISC",
 	"type": "commonjs",
 	"dependencies": {
